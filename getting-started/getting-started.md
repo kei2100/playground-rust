@@ -77,3 +77,13 @@ rustdoc
 rustfmt
 rustup
 ```
+
+
+Cargo package manger
+=
+
+build project: `cargo build`
+run project: `cargo run`
+test project: `cargo test`
+build project document: `cargo doc`
+publish library to crates.io `cargo publish`
