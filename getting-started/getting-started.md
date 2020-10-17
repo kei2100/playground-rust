@@ -1,7 +1,7 @@
-install
+Install
 =
 
-## using rustup
+## Using rustup
 
 ```bash
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -53,7 +53,7 @@ Current installation options:
 >
 ```
 
-### update Rust
+### Update Rust
 
 ```
 rustup update
