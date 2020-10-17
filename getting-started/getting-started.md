@@ -88,3 +88,8 @@ Cargo package manger
 - test project: `cargo test`
 - build project document: `cargo doc`
 - publish library to crates.io `cargo publish`
+
+## Cargo.toml
+Cargo.toml で deps の管理、Cargo.lock で deps のバージョン管理
+
+Cargo.lock は project が bin ならバージョン管理対象、lib なら対象外
