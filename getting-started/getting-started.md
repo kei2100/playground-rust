@@ -90,6 +90,7 @@ Cargo package manger
 
 - init project: `cargo new <project>`
 - build project: `cargo build`
+- build project for release: `cargo build --release`
 - run project: `cargo run`
 - test project: `cargo test`
 - compile できるかチェック: `cargo check`
