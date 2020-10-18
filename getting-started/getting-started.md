@@ -56,7 +56,13 @@ Current installation options:
 ### Update Rust
 
 ```
-rustup update
+$ rustup update
+```
+
+### Uninstall
+
+```
+$ rustup self uninstall
 ```
 
 ### Rust toolchain
