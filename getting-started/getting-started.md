@@ -89,6 +89,8 @@ Cargo package manger
 =
 
 - init project: `cargo new <project>`
+  - bin project template: `cargo new <project> --bin`
+  - lib project template: `cargo new <project> --lib`
 - build project: `cargo build`
 - build project for release: `cargo build --release`
 - run project: `cargo run`
