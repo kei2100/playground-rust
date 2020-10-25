@@ -89,6 +89,8 @@ Cargo package manger
 =
 
 - init project: `cargo new <project>`
+  - bin project template: `cargo new <project> --bin`
+  - lib project template: `cargo new <project> --lib`
 - build project: `cargo build`
 - build project for release: `cargo build --release`
 - run project: `cargo run`
@@ -101,3 +103,9 @@ Cargo package manger
 Cargo.toml で deps の管理、Cargo.lock で deps のバージョン管理
 
 Cargo.lock は project が bin ならバージョン管理対象、lib なら対象外
+
+
+std library
+=
+
+- [std::prelude](https://doc.rust-lang.org/std/prelude/index.html): Prelude には use 宣言しないでも使えるいくつかの型が含まれている。（String など）
