@@ -97,7 +97,8 @@ Cargo package manger
 - test project: `cargo test`
 - compile できるかチェック: `cargo check`
 - build project document: `cargo doc`
-- publish library to crates.io `cargo publish`
+- publish library to crates.io: `cargo publish`
+- 依存ライブラリの patch version upgrade: `cargo update`
 
 ## Cargo.toml
 Cargo.toml で deps の管理、Cargo.lock で deps のバージョン管理
