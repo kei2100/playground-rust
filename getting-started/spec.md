@@ -128,4 +128,94 @@ let second = a[1];
 
 ## 関数
 
+```rust
+fn main() {
+    another_function(5);
+}
+
+// 引数の型は宣言しなければならない
+fn another_function(x: i32) {
+    println!("The value of x is: {}", x);
+}
+```
+
+### 関数本体は、文と式を含む
+
+* 文: なんらかの動作をして値を<b>返さない</b>命令
+* 式: 結果が値に評価される。式は<b>文の一部</b>になり得る
+
+```rust
+fn main() {
+    // 文
+    let x = 5;
+
+    // 文: let y = { ... };
+    // 式: { ... }（ブロック。セミコロン覗いた部分。セミコロンをつけると文になる）
+    let y = {
+        let x = 3;
+        // 式で値を返したいのでセミコロン無し
+        x + 1
+    };    
+
+    // 式: マクロ呼び出し（セミコロン覗いた部分）
+    println!("The value of y is: {}", y);
+
+    // 式: 関数呼び出し（セミコロン覗いた部分）
+    another_function(5);
+}
+
+fn another_function(x: i32) {
+    println!("The value of x is: {}", x);
+}
+```
+
+### 戻り値のある関数
+
+```rust
+fn main() {
+    println!("{}", five());
+}
+
+// 戻り値有り
+fn five() -> i32 {
+    // 式
+    5
+}
+```
+
+
+## コメント
+
+```rust
+fn main() {
+    // comment
+    // 複数行
+    println!("hello"); // comment
+}
+```
+
+ドキュメントコメントというものもある。
+
+```rust
+//! ここに包括的なコメントを書く
+
+/// # MY_CONST
+/// マークダウンが記述できる。
+/// * foo
+/// * bar
+///
+/// ## コードもかける
+/// ```rust
+/// pub const MY_CONST:u32 = 100;
+/// ```
+pub const MY_CONST:u32 = 100;
+```
+
+これを `cargo doc` するとドキュメントが出力される。
+
+![image](https://user-images.githubusercontent.com/1415655/97228018-a962b700-1819-11eb-89e6-a12055868c1b.png)
+
+
+## フロー制御
+
 TBW
