@@ -218,4 +218,76 @@ pub const MY_CONST:u32 = 100;
 
 ## フロー制御
 
-TBW
+### if 式
+
+```rust
+fn main() {
+    let number = 6;
+
+    if number % 4 == 0 {
+        // 数値は4で割り切れます
+        println!("number is divisible by 4");
+    } else if number % 3 == 0 {
+        // 数値は3で割り切れます
+        println!("number is divisible by 3");
+    } else if number % 2 == 0 {
+        // 数値は2で割り切れます
+        println!("number is divisible by 2");
+    } else {
+        // 数値は4、3、2で割り切れません
+        println!("number is not divisible by 4, 3, or 2");
+    }
+}
+```
+
+### ループ
+#### loop
+
+```rust
+fn main() {
+    loop {
+        println!("again!");   // また
+    }
+}
+```
+
+#### while
+
+```rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{}!", number);
+
+        number = number - 1;
+    }
+
+    // 発射！
+    println!("LIFTOFF!!!");
+}
+```
+
+#### for
+
+コレクションを繰り返すのに使う
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a.iter() {
+        // 値は{}です
+        println!("the value is: {}", element);
+    }
+}
+```
+
+```rust
+fn main() {
+    for number in (1..4).rev() {
+        println!("{}!", number);
+    }
+    println!("LIFTOFF!!!");
+}
+```
