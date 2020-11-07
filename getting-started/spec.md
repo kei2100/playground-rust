@@ -472,4 +472,83 @@ fn takes_and_gives_back(a_string: String) -> String { // a_stringがスコープ
 
 ## 参照と借用
 
+### 参照
+
+```rust
+fn main() {
+    let s0 = String::from("hello");
+    // calculate_length では、関数に s0 を渡した時点で所有権がムーブするため、s0 に代入された値を参照するには以下のようにしなければならない。
+    let (s00, len) = calculate_length(s0);
+    println!("The length of '{}' is {}.", s00, len);
+
+
+    let s1 = String::from("world");
+    // calculate_length_ref では、s3 の参照を渡している。
+    let len = calculate_length_ref(&s1);
+    println!("The length of '{}' is {}.", s1, len);
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len();
+    (s, length)
+}
+
+fn calculate_length_ref(s: &String) -> usize {
+    s.len()
+}
+```
+
+上記例における `calculate_length_ref` の `s` と `s1` の関係を図示すると以下のようになる。
+
+![image](https://user-images.githubusercontent.com/1415655/98428317-49ef8b80-20e4-11eb-818c-f7967871eff7.png)
+
+したがって、以下のコードは、ヒープに配置された `"hello"` という文字列値を参照する `s1` を生成し、`&s1` により、その `s1` を参照する変数を生成しているといえる。
+（文字列値の<b>参照の参照</b>）
+
+`&s1` の記法は `s1` 参照を生成するが、`s1` を所有することはない。所有していないということは、`&1` が指している値は、`&s1` がスコープを抜けてもドロップされることはない。
+
+```rust
+let s1 = String::from("hello");
+let len = calculate_length(&s1);
+```
+
+関数のシグニチャも同様。
+
+```rust
+fn calculate_length_ref(s: &String) -> usize { // s は Stringへの参照
+    s.len()
+} // ここで s はスコープ外になるが、参照しているものの所有権を持っているわけではないので
+  // s が指しているものをドロップすることはない。
+  // 所有権をもらわないので、所有権を返す目的で値を返す必要もない。
+```
+
+### 借用
+
+* 関数の引数に参照を取ることを<b>借用</b>と呼ぶ。
+* 借用したものの参照先が不変であある場合、それを変更することはできない。
+
+```rust
+// これは動かない！
+fn main() {
+    let s = String::from("hello");
+
+    change(&s);
+}
+
+fn change(some_string: &String) {
+    some_string.push_str(", world");
+}
+
+// error[E0596]: cannot borrow immutable borrowed content `*some_string` as mutable
+// (エラー: 不変な借用をした中身`*some_string`を可変で借用できません)
+//  --> error.rs:8:5
+//   |
+// 7 | fn change(some_string: &String) {
+//   |                        ------- use `&mut String` here to make mutable
+// 8 |     some_string.push_str(", world");
+//   | 
+```
+
+### 可変な借用
+
 TBD
