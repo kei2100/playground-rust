@@ -524,7 +524,7 @@ fn calculate_length_ref(s: &String) -> usize { // s は Stringへの参照
 
 ### 借用
 
-* 関数の引数に参照を取ることを<b>借用</b>と呼ぶ。
+* 変数代入や関数の引数に、ある変数の参照を取ることを<b>借用</b>と呼ぶ。
 * 借用したものの参照先が不変であある場合、それを変更することはできない。
 
 ```rust
@@ -550,5 +550,88 @@ fn change(some_string: &String) {
 ```
 
 ### 可変な借用
+
+* 可変な変数 `let mut s` に対し、`&mut s` で可変な借用をすることができる。
+* 同時に複数の可変な借用を行うことはできない。
+* 同時に複数の不変な借用を行うことはできる。
+* 同時に不変な借用と可変な借用を行うことはできない。
+
+```rust 
+fn main() {
+    let mut s = String::from("hello");
+    change(&mut s); // 可変な参照
+    println!("{}", s); // hello, world
+
+    // {
+    //     // 以下はコンパイルエラー
+    //     // 同時に複数の可変な借用を行うことはできない。
+    //     let s1 = &mut s;
+    //     let s2 = &mut s;
+    //     println!("s1:{} s2:{}", s1, s2);
+    // }
+    {
+        // 以下は問題なし
+        // 同時に複数の不変な借用を行うことはできる。
+        let s1 = &s;
+        let s2 = &s;
+        println!("s1:{} s2:{}", s1, s2);
+    }
+    {
+        // 以下はコンパイルエラー
+        // 同時に不変な借用と可変な借用を行うことはできない。
+        let s1 = &s;
+        let s2 = &mut s;
+        println!("s1:{} s2:{}", s1, s2);
+    }
+}
+
+fn change(ss: &mut String) { // 可変な借用
+    ss.push_str(", world");
+}
+```
+
+### 宙に浮いた参照
+
+* Rust ではコンパイラによりダングリングポインタの発生を防止している。
+  * ダングリングポインタ: その箇所へのポインタがあるにも関わらず、メモリを解放してしまうことで発生するもの
+
+以下のコードはコンパイルエラーとなる
+
+```rust
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String {
+    let s = String::from("hello");  // s は新しい String
+    &s // String s への参照を返す
+} // ここで、s はスコープを抜けドロップされる。そのメモリは消される。危険だ！
+```
+
+```
+error[E0106]: missing lifetime specifier
+(エラー: ライフタイム指定子がありません)
+ --> main.rs:5:16
+  |
+5 | fn dangle() -> &String {
+  |                ^ expected lifetime parameter
+  |
+  = help: this function's return type contains a borrowed value, but there is no
+    value for it to be borrowed from
+    (助言: この関数の戻り値型は、借用した値を含んでいますが、借用される値がどこにもありません)
+  = help: consider giving it a 'static lifetime
+  ('staticライフタイムを与えることを考慮してみてください)
+```
+
+`dangle` 関数の戻り値を `&s` から `s` にすれば、所有権が呼び出し元にムーブされるため、コンパイルエラーではなくなる。
+
+```rust
+fn dangle() -> String {
+    let s = String::from("hello");  // s は新しい String
+    s
+} // ここで、s はスコープを抜けるが、所有権はムーブされるためドロップされない
+```
+
+## スライス型
 
 TBD
