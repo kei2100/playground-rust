@@ -634,4 +634,155 @@ fn dangle() -> String {
 
 ## スライス型
 
-TBD
+スライス型とは。
+
+* 所有権の無いデータ型。
+* コレクションの中の一連の要素を「参照」することができる。
+
+### 文字列スライス
+
+文字列スライスの例。
+
+```rust
+let s = String::from("hello world");
+
+let hello = &s[0..5];
+let world = &s[6..11];
+```
+
+* [開始..終点]: 開始の位置から始まり、**終点未満** の位置までの範囲を表す。
+* 上記では、 `let world` は、文字列の 7 バイト目へのポインタと 5 の長さを持つスライスになる。
+* 範囲の添字は、有効な UTF-8 文字境界に置かなければならない。マルチバイト文字の中途半端な位置を指すと、エラーでプログラムが落ちる。
+
+![image](https://user-images.githubusercontent.com/1415655/99161349-ca416c80-2734-11eb-9c6d-fed48093b848.png)
+
+範囲添字は以下のような記法がある。
+
+```rust
+let s = String::from("hello world");
+
+let world = &s[0..5];
+let world = &s[..5]; // 先頭から。上と等価。
+
+let world = &s[6..11];
+let world = &s[6..];  // 末尾まで。上と等価。
+
+let hw = &s[..]; // 文字列全体
+```
+
+文字列スライスを活用することで、安全なプログラムを書くことができるようになる例を以下にしめす。
+
+まず、危険な例。first_word という文字列における最初の単語（英単語）を抽出する関数。
+
+```rust
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s); // word の中身は、値5になる
+
+    s.clear(); // String を空にする。
+
+    // word はまだ値5を保持しているが、もうこの値を有効に使用できる文字列は存在しない！
+    println!("the first word is: {}", s[]);
+}
+
+// first_word は、文字列 s から最初の単語のインデックスを返却する
+fn first_word(s: &String) -> usize {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return i;
+        }
+    }
+
+    s.len()
+}
+```
+
+スライスを使うことで、このプログラムを安全にすることができる。
+　
+* *不変な借用をしている間は、可変な借用をすることはできない*
+
+のが、ポイント。
+
+```rust
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+
+    s.clear(); // エラー
+
+    println!("the first word is: {}", word);
+}
+
+// first_word は、文字列 s から最初の単語までを参照する不変なスライスを返却する。
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+このプログラムはコンパイル時に問題が検出される。
+不変な借用が有効な間に、`s.clear();` により可変な借用をしようとしているからである。
+
+```
+$ cargo run --color=always --package sandbox --bin sandbox
+error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
+ --> src/main.rs:6:5
+  |
+4 |     let word = first_word(&s);
+  |                           -- immutable borrow occurs here
+5 | 
+6 |     s.clear(); // エラー
+  |     ^^^^^^^^^ mutable borrow occurs here
+7 | 
+8 |     println!("the first word is: {}", word);
+  |                                       ---- immutable borrow later used here
+
+error: aborting due to previous error
+```
+
+### 文字列リテラルはスライス
+
+スライスを理解すると、文字列リテラルは何者なのかが分かる。
+
+```rust
+let s = "Hello, world!";
+```
+
+この s の型は、&str である。つまり不変。
+
+### 引数としての文字列スライス
+
+先の `first_word` 関数は、
+
+```rust
+fn first_word(s: &String) -> &str {
+```
+
+から
+
+```rust
+fn first_word(s: &str) -> &str {
+```
+
+とすることで、String でも str でも渡すことができるようになる。
+
+### 他のスライス
+
+```
+let a = [1, 2, 3, 4, 5];
+
+let slice = &a[1..3];
+```
+
+`slice` は `&[i32]` という型になる。これも文字列スライスと同様に動作する。つまり最初の要素への参照と長さを保持する。
