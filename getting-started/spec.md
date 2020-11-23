@@ -786,3 +786,145 @@ let slice = &a[1..3];
 ```
 
 `slice` は `&[i32]` という型になる。これも文字列スライスと同様に動作する。つまり最初の要素への参照と長さを保持する。
+
+
+# 構造体を使用して関係のあるデータを構造化する
+
+## 構造体を定義し、インスタンス化する
+
+### 基本
+```rs
+// 構造体とフィールドの定義
+struct User {
+    username: String,
+    email: String,
+    sign_in_count: u64,
+    active: bool,
+}
+
+
+// 構造体のインスタンス生成
+let mut user1 = User {
+    email: String::from("someone@example.com"),
+    username: String::from("someusername123"),
+    active: true,
+    sign_in_count: 1,
+};
+
+// フィールドへの値の設定
+// NOTE: 値を設定するときはインスタンス全体が可変でないといけない！一部のフィールドのみを可変にすることはできない。
+user1.email = String::from("anotheremail@example.com");
+
+
+// 関数の戻り値に構造体を使う
+fn build_user(email: String, username: String) -> User {
+    User {
+        email: email,
+        username: username,
+        active: true,
+        sign_in_count: 1,
+    }
+}
+
+// 上記の省略記法
+fn build_user(email: String, username: String) -> User {
+    User {
+        email,
+        username,
+        active: true,
+        sign_in_count: 1,
+    }
+}
+
+// 構造体更新記法
+// * 更新記法を使わないバージョン
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername567"),
+    active: user1.active,
+    sign_in_count: user1.sign_in_count,
+};
+
+// * 更新記法を使うバージョン
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername567"),
+    ..user1
+};
+```
+
+### タプル構造体
+
+名前がついたタプルのような、フィールド名を持たない構造体
+
+```rs
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+let black = Color(0, 0, 0);
+let origin = Point(0, 0, 0);
+
+// black と origin は異なる型であることに注意
+
+// アクセス方法は通常のタプルと同様
+let x = origin.0;
+let y = origin.1;
+let z = origin.2;
+
+let (x, y, z) = origin;
+```
+
+### フィールドの無いユニット様（よう）構造体
+
+* ユニット型（要素がゼロのタプル `()`）のように振る舞う構造体
+* フィールドを持たない
+* ある型にトレイトを実装するが、 型自体に保持させるデータは一切ない場面に有効
+
+
+```rs
+struct UnitStruct;
+```
+
+### 構造体データの所有権
+
+* この段落の User 構造体の定義で、フィールドの型は &str のような文字列スライス型ではなく、所有権のある String 型を使用した
+* この選択は意識的なもの。
+* この構造体のインスタンスには全データを所有してもらう必要があり、インスタンスが有効な間はそのフィールドも有効でいてほしいため。
+
+```rs
+struct User {
+    username: &str,
+    email: &str,
+    sign_in_count: u64,
+    active: bool,
+}
+
+fn main() {
+    let user1 = User {
+        email: "someone@example.com",
+        username: "someusername123",
+        active: true,
+        sign_in_count: 1,
+    };
+}
+```
+
+上記のようなコードは、コンパイルエラーとなる。
+
+```
+error[E0106]: missing lifetime specifier
+(エラー: ライフタイム指定子がありません)
+ -->
+  | 
+2 |     username: &str,
+  |               ^ expected lifetime parameter
+                   (ライフタイム引数を予期しました)
+
+error[E0106]: missing lifetime specifier
+ -->
+  | 
+3 |     email: &str,
+  |            ^ expected lifetime parameter
+```
+
+ライフタイムという機能を使えばこのようなフィールド型をもたせることも可能であるが、それは後述。
