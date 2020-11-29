@@ -928,3 +928,126 @@ error[E0106]: missing lifetime specifier
 ```
 
 ライフタイムという機能を使えばこのようなフィールド型をもたせることも可能であるが、それは後述。
+
+## 構造体を使ったプログラム例
+
+```rs
+fn main() {
+    println!("{}", area_simple(2, 10));
+    println!("{}", area_use_tuple((3, 10)));
+    let rect = Rectangle { width: 4, height: 10 };
+    println!("{}", area_use_struct(&rect))
+}
+
+// 単純な面積計算
+fn area_simple(width: u32, height: u32) -> u32 {
+    width * height
+}
+
+// タプルを使ってリファクタリング
+fn area_use_tuple(dimensions: (u32, u32)) -> u32 {
+    dimensions.0 * dimensions.1
+}
+
+// 構造体を使ってさらにリファクタリング
+fn area_use_struct(rectangle: &Rectangle) -> u32 {
+    rectangle.width * rectangle.height
+}
+
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+```
+
+### トレイトの導出で有用な機能を追加する
+
+```rs
+#[derive(Debug)] // Debug トレイトを導出する注釈を追加する
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect = Rectangle { width: 4, height: 10 };
+
+    // {:?} フォーマットは Debug トレイトを実装? する値の出力を行うことができる
+    println!("{:?}", &rect)
+    // 出力 -=> Rectangle { width: 4, height: 10 }
+}
+```
+
+## メソッド記法
+
+### メソッドを定義する
+
+```rs
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // メソッド
+    // * 最初の引数は必ず自身のインスタンスを表す self となる
+    // * インスタンスの状態を変更したかったら &mut self となる
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rect = Rectangle { width: 4, height: 10 };
+    println!("{}", rect.area())
+}
+```
+
+### メソッド呼び出し
+
+* Rust のメソッド呼び出しは、そのメソッドの self の定義に応じて、& や &mut、* を自動的に付与する。
+* たとえば、上段のメソッドを呼び出すとき、2行目の参照の付与を自動的に実行している。
+
+```rs
+1: rect.area();
+2: (&rect).area();
+```
+
+### 関連関数
+
+* self を取らない関数。メソッドではない。インスタンスではなく構造体に関連付けられる。
+* 構造体の新規インスタンスを返すコンストラクタとしてよく使われる。`String::from` など。
+
+```rs
+impl Rectangle {
+    fn square(size: u32) -> Rectangle {
+        Rectangle { width: size, height: size }
+    }
+}
+
+// Rectangle::square(10) のように呼び出す
+```
+
+### 複数の impl ブロック
+
+* 分けて書くことができる
+
+```rs
+mpl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+```
+
+# Enum とパターンマッチング
+
+## enum を定義する
+
+TODO
