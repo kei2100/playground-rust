@@ -793,7 +793,7 @@ let slice = &a[1..3];
 ## 構造体を定義し、インスタンス化する
 
 ### 基本
-```rs
+```rust
 // 構造体とフィールドの定義
 struct User {
     username: String,
@@ -857,7 +857,7 @@ let user2 = User {
 
 名前がついたタプルのような、フィールド名を持たない構造体
 
-```rs
+```rust
 struct Color(i32, i32, i32);
 struct Point(i32, i32, i32);
 
@@ -881,7 +881,7 @@ let (x, y, z) = origin;
 * ある型にトレイトを実装するが、 型自体に保持させるデータは一切ない場面に有効
 
 
-```rs
+```rust
 struct UnitStruct;
 ```
 
@@ -891,7 +891,7 @@ struct UnitStruct;
 * この選択は意識的なもの。
 * この構造体のインスタンスには全データを所有してもらう必要があり、インスタンスが有効な間はそのフィールドも有効でいてほしいため。
 
-```rs
+```rust
 struct User {
     username: &str,
     email: &str,
@@ -931,7 +931,7 @@ error[E0106]: missing lifetime specifier
 
 ## 構造体を使ったプログラム例
 
-```rs
+```rust
 fn main() {
     println!("{}", area_simple(2, 10));
     println!("{}", area_use_tuple((3, 10)));
@@ -962,7 +962,7 @@ struct Rectangle {
 
 ### トレイトの導出で有用な機能を追加する
 
-```rs
+```rust
 #[derive(Debug)] // Debug トレイトを導出する注釈を追加する
 struct Rectangle {
     width: u32,
@@ -982,7 +982,7 @@ fn main() {
 
 ### メソッドを定義する
 
-```rs
+```rust
 struct Rectangle {
     width: u32,
     height: u32,
@@ -1008,7 +1008,7 @@ fn main() {
 * Rust のメソッド呼び出しは、そのメソッドの self の定義に応じて、& や &mut、* を自動的に付与する。
 * たとえば、上段のメソッドを呼び出すとき、2行目の参照の付与を自動的に実行している。
 
-```rs
+```rust
 1: rect.area();
 2: (&rect).area();
 ```
@@ -1018,7 +1018,7 @@ fn main() {
 * self を取らない関数。メソッドではない。インスタンスではなく構造体に関連付けられる。
 * 構造体の新規インスタンスを返すコンストラクタとしてよく使われる。`String::from` など。
 
-```rs
+```rust
 impl Rectangle {
     fn square(size: u32) -> Rectangle {
         Rectangle { width: size, height: size }
@@ -1032,7 +1032,7 @@ impl Rectangle {
 
 * 分けて書くことができる
 
-```rs
+```rust
 mpl Rectangle {
     fn area(&self) -> u32 {
         self.width * self.height
@@ -1050,7 +1050,7 @@ impl Rectangle {
 
 ## Enum を定義する
 
-```rs
+```rust
 enum IpAddrKind {
     V4,
     V6,
@@ -1065,7 +1065,7 @@ fn route(ip_type: IpAddrKind) {}
 
 enum 値に型を関連付けることができる。
 
-```rs
+```rust
 enum IpAddr {
     V4(String),
     V6(String),
@@ -1078,7 +1078,7 @@ let loopback = IpAddr::V6(String::from("::1"));
 
 enum 値はそれぞれ異なる型でもよい。
 
-```rs
+```rust
 enum IpAddr {
     V4(u8, u8, u8, u8),
     V6(String),
@@ -1091,7 +1091,7 @@ let loopback = IpAddr::V6(String::from("::1"));
 
 それぞれ異なる型でもよい。実際 std::net::IpAddr はそのような定義になっている。
 
-```rs
+```rust
 struct Ipv4Addr {
     // 省略
 }
@@ -1108,7 +1108,7 @@ enum IpAddr {
 
 異なる型を定義できるので、いずれの型も受け取る関数を簡単に定義することができる。
 
-```rs
+```rust
 enum Message {
     Quit,
     Move { x: i32, y: i32 }, // 匿名構造体
@@ -1121,7 +1121,7 @@ fn process_messsage(message: Message) {}
 
 enum にメソッド定義することができる。
 
-```rs
+```rust
 impl Message {
     fn call(&self) {
         // method body would be defined here
