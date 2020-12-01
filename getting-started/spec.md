@@ -1048,6 +1048,95 @@ impl Rectangle {
 
 # Enum とパターンマッチング
 
-## enum を定義する
+## Enum を定義する
+
+```rs
+enum IpAddrKind {
+    V4,
+    V6,
+}
+
+let four = IpAddrKind::V4;
+let six = IpAddrKind::V6;
+
+
+fn route(ip_type: IpAddrKind) {}
+```
+
+enum 値に型を関連付けることができる。
+
+```rs
+enum IpAddr {
+    V4(String),
+    V6(String),
+}
+
+let home = IpAddr::V4(String::from("127.0.0.1"));
+
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+enum 値はそれぞれ異なる型でもよい。
+
+```rs
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+
+let home = IpAddr::V4(127, 0, 0, 1);
+
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+それぞれ異なる型でもよい。実際 std::net::IpAddr はそのような定義になっている。
+
+```rs
+struct Ipv4Addr {
+    // 省略
+}
+
+struct Ipv6Addr {
+    // 省略
+}
+
+enum IpAddr {
+    V4(Ipv4Addr),
+    V6(Ipv6Addr),
+}
+```
+
+異なる型を定義できるので、いずれの型も受け取る関数を簡単に定義することができる。
+
+```rs
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 }, // 匿名構造体
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+fn process_messsage(message: Message) {}
+```
+
+enum にメソッド定義することができる。
+
+```rs
+impl Message {
+    fn call(&self) {
+        // method body would be defined here
+        // メソッド本体はここに定義される
+    }
+}
+
+let m = Message::Write(String::from("hello"));
+m.call();
+```
+
+### 標準ライブラリ enum Option
+
+標準ライブラリの `enum Option` で、値がなにかかそうでないか、を型安全にコード化できる
+
+例えば Rust には null が存在しないが、
 
 TODO
