@@ -1,3 +1,4 @@
+
 # 一般的なプログラミングの概念
 
 ## 変数と可変性
@@ -1137,6 +1138,149 @@ m.call();
 
 標準ライブラリの `enum Option` で、値がなにかかそうでないか、を型安全にコード化できる
 
-例えば Rust には null が存在しないが、
+例えば Rust には null が存在しないが、`enum Option` を使うことで、値が存在するか不在化という概念をコード化することができる。
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+
+`Option` は有益なため Rust の Prelude（初期化）にも含まれ、`Option::` の prefix なしで直接 Some(T) と None を使うことができる。 
+`Option<T>` には様々なメソッドがあり、それらのを使って Some(T) が持つ値を取り出したりすることができる。
+
+`let x: Option<i8> = Some(5);` のようにすると、`i8` の値を持つ Some 値を表すことができるが、通常の `let y: i8 = 10;` の型とは互換性が無く、`let z = x + y;` はコンパイルエラーとなる。
+通常の型であれば値が必ずあることがコンパイラレベルで保障される。Option であれば値を保持していない可能性があり、それを考慮したプログラムを組む必要があることを明示することができるのである。
+
+## match フロー制御演算子
+
+* `match` 演算子によりパターンマッチできる。
+* 全てのありうるパターンを処理しているかをコンパイラがチェックしてくれる
+
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u32 {
+    match coin {
+        Coin::Penny => {
+            println!("Luckey penny!");
+            1
+        },
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+```
+
+### パターンマッチと束縛
+
+* パターンにマッチしたらその値を束縛することができる。
+
+
+```rust
+#[derive(Debug)] // すぐに州を点検できるように
+enum UsState {
+    Alabama,
+    Alaska,
+    // ... などなど
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u32 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            // value_in_cents(Coin::Quarter(UsState::Alaska)) と呼び出したら、
+            // state には UsState::Alaska が束縛される
+            println!("State quarter from {:?}!", state);
+            25
+        },
+    }
+}
+```
+
+### Option<T> とのマッチ
+
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+
+### _ プレースホルダー
+
+* Rust のパターンマッチは包括的であるため、全てのパターンを網羅していないとコンパイルエラーとなる。
+* 全ての可能性を列挙したくない場合は、`_` で残り全てのパターンをマッチすることができる。
+
+```rust
+let some_u8_value = 0u8;
+match some_u8_value {
+    1 => println!("one"),
+    3 => println!("three"),
+    5 => println!("five"),
+    7 => println!("seven"),
+    _ => (), // () はただのユニット値なので何もしない
+}
+```
+
+## if let で簡潔なフロー制御
+
+* `if let` を使うと、ある値にマッチしたときだけに行いたい処理を簡潔に書くことができる。
+* `match` を使用する場合と比較して簡潔に書くことができるが、`match` が持つ包括性チェックは失われるので、包括性よりも簡潔性を得るほうが適切な場合に使う。
+
+```rust
+let some_u8_value = Some(0u8);
+
+match some_u8_value {
+    Some(3) => println!("three"),
+    _ => (),
+}
+
+// if let で簡潔に書き直す
+if let Some(3) = some_u8_value {
+    println!("three");
+}
+```
+
+* `else` を使うこともできる。
+
+```rust
+match coin {
+    Coin::Quarter(state) => println!("State quarter from {:?}!", state),
+    _ => count += 1,
+}
+
+// if let else で書き直すと以下
+if let Coin::Quarter(state) = coin {
+    println!("State quarter from {:?}!", state);
+} else {
+    count += 1;
+}
+```
+
+
+# 肥大化していくプロジェクトをパッケージ、クレート、モジュールを利用して管理する
 
 TODO
