@@ -1283,4 +1283,155 @@ if let Coin::Quarter(state) = coin {
 
 # 肥大化していくプロジェクトをパッケージ、クレート、モジュールを利用して管理する
 
+Rust のモジュールシステム
+
+* パッケージ： クレートをビルドし、テストし、共有することができる Cargo の機能
+* クレート: ライブラリか実行可能ファイルを生成する木構造をしたモジュール郡
+* モジュールと use: これを使うことで、パスの構成、スコープ、公開するか否かを決定できる。
+* パス: 要素（構造体や関数やモジュールなど）に名前をつける方法
+
+## パッケージとクレート
+
+* クレート
+  * ライブラリかバイナリのどちらか。
+  * crate root: クレートのルートモジュールを作るソース・ファイル。コンパイラの開始点。
+    * src/main.rs: バイナリ用ルートクレートのデフォルト
+    * src/lib.rs: ライブラリ用ルートクレートのデフォルト
+
+* パッケージ
+  * ある機能郡を提供する一つ以上のクレート
+  * Cargo.toml でそれらのクレートをどのようにビルドするのか定義する
+
+* パッケージに src/main.rs と src/lib.rs を置くと、同じパッケージ名を持つライブラリとバイナリのクレート2つを持つことになる
+* ファイルを src/bin に置くと、パッケージに複数の別々のバイナリクレートを持つことができる。
+
+## モジュールを定義して、スコープとプライバシーを制御する
+
+* モジュールはクレート内のコードをグループ化する
+* モジュールで、要素のプライバシー (public or private) をで制御できる
+* `mod モジュール名` でモジュールを定義することができる
+
+```rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+
+        fn serve_order() {}
+
+        fn take_payment() {}
+    }
+}
+```
+
+上記モジュールは以下のツリー構造となる。
+
+```
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+```
+
+## モジュールツリーの要素を示すためのパス
+
+* ファイルシステムをたどるように、モジュールツリー内の要素を「パス」を使って見つける
+* パスは「絶対パス」と「相対パス」がある
+* 絶対パス
+  * クレート名、あるいは `crate` という名前をクレートルートとして、目的のモジュール要素までのパスを表す
+* 相対パス
+  * `self`、あるいは `super`、または現在のモジュール内の識別子を使うことで、現在の位置から目的のモジュール要素までのパスを表す
+* 絶対パスを使うか相対パスを使うかは、要素を定義するコードを、その要素を使うコードと別々に動かすか一緒に動かすか、どちらが起こりそうかによって決めるのが良い。
+
+```rust
+// src/lib.rs
+
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+    }
+}
+
+pub fn eat_at_restaurant() {
+    // 絶対パス
+    crate::front_of_house::hosting::add_to_waitlist();
+
+    // 相対パス （front_of_house は同じ階層なので、識別子を使ってパスをたどることができる）
+    front_of_house::hosting::add_to_waitlist();
+}
+```
+
+* 上記コードはこのままではコンパイルエラー
+* モジュールの要素はデフォルトでは非公開(private)
+* 親モジュールは、非公開な子モジュールの要素をパスでたどることはできない
+  * `mod hosting` と `fn add_to_waitlist` を、それぞれ `pub mod`、`pub fn` にすればコンパイルできる
+* 子モジュールは、非公開であってもその祖先モジュールの要素をパスでたどることができる
+  * 子モジュールは自分の定義された文脈を見ることができる
+* 兄弟モジュールもたどることができる
+
+### 相対パスを super で始める
+
+```rust
+fn serve_order() {}
+
+mod back_of_house {
+    fn fix_incorrect_order() {
+        cook_order();
+        super::serve_order(); // 親の兄弟要素である serve_order を参照
+    }
+
+    fn cook_order() {}
+}
+```
+
+### 構造体と enum を公開する
+
+* 構造体を pub で公開しても、フィールドはそのままでは非公開
+
+```rust
+mod back_of_house {
+    pub struct Breakfast {
+        pub toast: String, // 公開フィールド
+        seasonal_fruit: String,
+    }
+
+    impl Breakfast {
+        pub fn summer(toast: &str) -> Breakfast { // 公開メソッド
+            Breakfast {
+                toast: String::from(toast),
+                seasonal_fruit: String::from("peaches"),
+            }
+        }
+    }
+}
+```
+
+* 一方で、enum は公開するとその variant は全て公開される。
+
+```rust
+mod back_of_house {
+    pub enum Appetizer {
+        Soup,
+        Salad,
+    }
+}
+
+pub fn eat_at_restaurant() {
+    let order1 = back_of_house::Appetizer::Soup;
+    let order2 = back_of_house::Appetizer::Salad;
+}
+```
+
+## `use` キーワードでパスをスコープに持ち込む
+
 TODO
