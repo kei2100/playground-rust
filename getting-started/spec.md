@@ -1,4 +1,3 @@
-
 # 一般的なプログラミングの概念
 
 ## 変数と可変性
@@ -1433,5 +1432,186 @@ pub fn eat_at_restaurant() {
 ```
 
 ## `use` キーワードでパスをスコープに持ち込む
+
+* `use` でパスをスコープに持ち込むことで、パスの要素をローカルに存在するかのように呼び出すことができる。
+* 絶対パスのほか、相対パスでも use を使うことができる
+
+
+```rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+* モジュール内の関数までパス指定できるが、モジュールまでに収めるのが慣例的
+* 一方で構造体や enum その他の要素を持ち込む場合は、その要素までパス指定するのが慣例的
+* しかし名前が衝突する場合は親モジュールのパスを使わないといけない
+* あるいは、`as` キーワードで別名を与える
+
+```rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use crate::front_of_house::hosting::add_to_waitlist; // 慣例的でない
+
+pub fn eat_at_restaurant() {
+    add_to_waitlist();
+    add_to_waitlist();
+    add_to_waitlist();
+}
+
+use std::collections::HashMap; // HashMap 構造体。慣例的。
+
+fn main() {
+    let mut map = HashMap::new();
+    map.insert(1, 2);
+}
+
+use std::fmt;
+use std::io;
+
+fn function1() -> fmt::Result { // io::Result と衝突するので fmt までのパス指定
+    // --snip--
+    // （略）
+}
+
+fn function2() -> io::Result<()> {
+    // --snip--
+    // （略）
+}
+
+use std::fmt::Result;
+use std::io::Result as IoResult; // 衝突回避のために as で別名を与える
+
+fn function1() -> Result {
+    // --snip--
+}
+
+fn function2() -> IoResult<()> {
+    // --snip--
+}
+```
+
+### `pub use` を使って名前を再公開する
+
+* `use` でスコープに持ち込んだ名前を `pub use` とすることで再公開できる
+
+```rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use crate::front_of_house::hosting; // 外部のコードがhosting::add_to_waitlistを使ってadd_to_waitlist関数を呼び出せるようになる
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+### 外部のパッケージを使う
+
+* Cargo.toml で crates.io からダウンロードするパッケージを指定する
+
+```toml
+[dependencies]
+rand = "0.5.5"
+```
+
+* Cargo.toml でダウンロードしたパッケージを使う
+* 標準ライブラリの `std` は予め Rust に含まれているため、Cargo.toml で指定する必要はない
+
+```rust
+use rand::Rng;
+
+fn main() {
+    let secret_number = rand::thread_rng().gen_range(1, 101);
+}
+```
+
+### 巨大な `use` のリストをネストしたパスを使って整理する
+
+```rust
+use std::cmp::Ordering;
+use std::io;
+```
+
+はネストしたパスを使って以下のように整理できる。
+
+```rust
+use std::{cmp::Ordering, io};
+```
+
+また、`self` をつかうと、
+
+```rust
+use std::io;
+use std::io::Write;
+```
+
+```rust
+use std::io::{self, Write};
+```
+
+### glob 演算子
+
+* `*` でそのパスにおいて公開されている要素をすべて持ち込むことができる
+* プログラムで使われている名前がどこで定義されたものかわかりづらくなるので注意して使う
+* テストの際に `tests` モジュールの公開要素をすべて持ち込むのによく利用される
+
+```rust
+use std::collections::*;
+```
+
+## モジュールを複数のファイルに分割する
+
+* 当然モジュールは複数ファイルに分割することができる
+* `mod front_of_house;` のように、ブロックの代わりに `;` を使うと、モジュールの本体をその名前を持つファイルから探す
+* ルートの子要素で `;` を使って、自身の要素名のディレクトリ配下にモジュールを分割することもできる
+
+src/lib.rs
+
+```rust
+mod front_of_house;
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+src/front_of_house.rs
+
+```rust
+pub mod hosting;
+```
+
+src/front_of_house/hosting.rs
+
+```rust
+pub fn add_to_waitlist() {}
+```
+
+
+# 一般的なコレクション
 
 TODO
