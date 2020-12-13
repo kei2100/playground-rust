@@ -1658,4 +1658,77 @@ v.push(8);
 * 一見単純だが、ベクタの要素への参照を導入した途端、 もうちょっと複雑になる可能性がある
 * 次の段落でそれを見ていく
 
-TODO ベクタの要素を読む
+### ベクタの要素を読む
+
+```rust
+let v = vec![1, 2, 3, 4, 5];
+
+let third: &i32 = &v[2]; // 添字アクセス。添字が範囲外の場合は panic
+let third: Option<&i32> = v.get(2); // get アクセス。Option を返却し、添字が範囲外の場合は None となる。
+
+let third = v.get(2); // 型推論
+```
+
+所有権により、ベクタへの不変な参照が有効な間は、可変な参照を同時に行うことはできない。
+以下のプログラムはコンパイルエラーとなる。
+
+```rust
+let mut v = vec![1, 2, 3, 4, 5];
+
+let first = &v[0];
+
+v.push(6);
+
+println!("The first element is: {}", first);
+```
+
+```
+error[E0502]: cannot borrow `v` as mutable because it is also borrowed as immutable
+  |
+4 |     let first = &v[0];
+  |                  - immutable borrow occurs here
+5 |
+6 |     v.push(6);
+  |     ^ mutable borrow occurs here
+7 | }
+  | - immutable borrow ends here
+```
+
+新規要素をベクタの終端に追加すると、現在ベクタが確保しているメモリに十分な容量がない場合、メモリを新規確保して古い要素を新しいスペースにコピーする。
+その場合、最初の要素を指す参照は解放されたメモリを指すことになる。借用規則によりそのようにならないよう回避される。
+
+### ベクタの値を走査する。
+
+```rust
+let v = vec![100, 32, 57];
+for i in &v {
+    println!("{}", i);
+}
+
+let mut v = vec![100, 32, 57];
+for i in &mut v {
+    *i += 50; // 可変参照が挿している値を変更するには、* でデリファレンスして値にたどり着かなければならない
+}
+```
+
+### Enum を使って複数の型を保持する
+
+ベクタは同じ型の値しか保持できないが、Enum を使うことで、異なる型のコレクションを表現することができる。
+
+```rust
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String),
+}
+
+let row = vec![
+    SpreadsheetCell::Int(3),
+    SpreadsheetCell::Text(String::from("blue")),
+    SpreadsheetCell::Float(10.12),
+];
+```
+
+## 文字列でUTF-8でエンコードされたテキストを保持する
+
+// TODO
