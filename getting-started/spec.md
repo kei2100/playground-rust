@@ -1928,4 +1928,43 @@ for b in "नमस्ते".bytes() {
 
 ## キーとそれに紐づいた値をハッシュマップに格納する
 
-TODO
+* `HashMap<K, V>`
+
+```rust
+use std::collections::HashMap; // use 必要
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+// タプルのベクタの collect メソッドによる生成
+let teams  = vec![String::from("Blue"), String::from("Yellow")];
+let initial_scores = vec![10, 50];
+
+// collect はいろいろなコレクション型にデータをまとめ上げるため、ハッシュマップでほしいことを伝えるために
+// HashMap<_, _> の型注釈が必要。K と V の型は推論される。
+let scores: HashMap<_, _> = teams.iter().zip(initial_scores.iter()).collect();
+```
+
+### ハッシュマップと所有権
+
+* `i32` のような `Copy` トレイトを実装する型ならば、その値はハッシュマップにコピーされる。
+* String のような所有権のある型ならば、その所有権はハッシュマップにムーブされる。
+* 値の参照ならば、その値はムーブされない。ただしハッシュマップが有効な間、その値も有効でなければならない（ライフタイム指定子が必要）
+
+```rust
+use std::collections::HashMap;
+
+let field_name = String::from("Favorite color");
+let field_value = String::from("Blue");
+
+let mut map = HashMap::new();
+map.insert(field_name, field_value); // ここで field_name と field_value はムーブ
+```
+
+### ハッシュマップの値にアクセスする
+
+### ハッシュマップを更新する
+
+### ハッシュ関数
