@@ -1965,6 +1965,36 @@ map.insert(field_name, field_value); // ここで field_name と field_value は
 
 ### ハッシュマップの値にアクセスする
 
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+// get(&key) によるアクセス
+// 下記 score は Some(&10) になる。get は Option<&V> を返却し、値がない場合は None を返却する
+let team_name = String::from("Blue");
+let score = scores.get(&team_name);
+
+// for ループによる列挙
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+
 ### ハッシュマップを更新する
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25); // 値の上書き
+```
+
+// TODO
 
 ### ハッシュ関数
