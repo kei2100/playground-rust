@@ -1993,8 +1993,33 @@ let mut scores = HashMap::new();
 
 scores.insert(String::from("Blue"), 10);
 scores.insert(String::from("Blue"), 25); // 値の上書き
+
+// 値が存在しない場合にinsert。
+// entry は Entry という enum を返却する。存在していたりいなかったりする可能性のある値を表す。
+scores.entry(String::from("Yellow")).or_insert(50); 
+scores.entry(String::from("Blue")).or_insert(50);   
+
+
+// 古い値にもとづいて値を更新する。
+// 以下は単語の出現回数をカウントしている。
+let text = "hello world wonderful world";
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+    // or_insert は Entry に値がある場合に、その値への可変参照を返却する
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
 ```
 
-// TODO
-
 ### ハッシュ関数
+
+* ハッシュ関数はデフォルトでは DoS 耐性のある暗号学的に安全なハッシュ関数が使われる
+* 速度はまぁまぁ
+* `BuildHasher` トレイトを実装する独自の hasher を指定することもできる
+* crates.io に様々な hasher が公開されている
+
+
+# エラー処理
+
+// TODO
