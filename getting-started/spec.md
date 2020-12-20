@@ -2022,4 +2022,173 @@ for word in text.split_whitespace() {
 
 # エラー処理
 
-// TODO
+* Rust には「回復可能エラー」と「回復不可能なエラー」がある
+* 回復可能なエラーは、例えばファイルが見つからないなど、問題をユーザーに報告し再試行することが合理的なもの
+* 回復不可能なエラーは、配列の境界を超えたアクセスなどバグの兆候となるもの
+* Rust には例外の機構はない。代わりに回復可能なエラーには `Result<T, E>` 値があり、回復不可能なエラーには `panic!` マクロがある。
+
+## `panic!` による回復不可能なエラー
+
+### パニックに対してスタックを巻き戻すか異常終了するか
+
+* 標準では、パニックするとスタックを巻き戻し、遭遇した各関数のデータの片付けを行う
+* この遡りと片付けはすべきことが多い
+* 巻き戻しの対立案としては、即座に異常終了し、使用していたメモリなどの片付けを OS に任せること
+* Cargo.toml の適切な [profile] 欄に `panic = 'abort'` を追記することで、 パニック時に巻き戻しから異常終了するように切り替えることができる
+* abort にすると、実行可能ファイルのサイズを小さく抑えることができる (?)
+
+```toml
+# リリースモード時に巻き戻しではなく異常終了する例
+[profile.release]
+panic = 'abort'
+```
+
+### `panic!` バックトレースを使用する
+
+* `RUST_BACKTRACE` 環境変数に 0 以外をセットするとバックトレースが出力される
+* バックトレースで情報を十分に得るにはデバッグシンボルを有効にする必要があり、`--release` オプションなしで `cargo build / run` していればデフォルト有効になる
+
+## `Result` による回復可能なエラー
+
+Result enum で結果、あるいは回復可能なエラーを表現することができる
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+```rust
+use std::fs::File;
+
+fn main() {
+    // File::open は Result<std::fs::File, std::io::Error> を返却する
+    // f のインスタンスは open が成功したときは Ok<std::fs::File> となり、失敗したときは Err<std::io::Error> となる
+    let f = File::open("hello.txt");
+
+    // match アーム内で成功と失敗をハンドリングする
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => {
+            // ファイルを開く際に問題がありました
+            panic!("There was a problem opening the file: {:?}", error)
+        },
+    };
+}
+```
+
+### 色々なエラーにマッチする
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        // `if error.kind() == ErrorKind::NotFound` はマッチガードと呼ばれる。この式に一致した場合にのみブロックが実行される。
+        // `ref` は、 error の所有権がマッチガード式に移ってしまわないようにするために必要。
+        // `&` だと 参照にマッチしその値を返すが、`ref` は値にマッチしその参照を返す 
+        Err(ref error) if error.kind() == ErrorKind::NotFound => {
+            match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => {
+                    panic!(
+                        //ファイルを作成しようとしましたが、問題がありました
+                        "Tried to create file but there was a problem: {:?}",
+                        e
+                    )
+                },
+            }
+        },
+        Err(error) => {
+            panic!(
+                "There was a problem opening the file: {:?}",
+                error
+            )
+        },
+    };
+}
+```
+
+### エラー時にパニックするショートカット: `unwrap` と `expect`
+
+`Result<T, E>` は色々な作業をするヘルパーメソッドを備える
+
+```rust
+use std::fs::File;
+
+fn main() {
+    // unwrap は Result 値が Ok 列挙子 のときその中身を返却し、Err ならば panic! を呼ぶ
+    let f = File::open("hello.txt").unwrap();
+
+    // expect は unwrap と似ているが、panic! を呼ぶ際のエラーメッセージを指定することができる
+    let f = File::open("hello.txt").expect("Failed to open hello.txt");
+}
+```
+
+### エラーを委譲する
+
+`Result<T, E>` を返却する関数は、その処理中におきた回復可能なエラーを呼び出し元に委譲することもできる
+
+```rust
+use std::io;
+use std::io::Read;
+use std::fs::File;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let f = File::open("hello.txt");
+
+    let mut f = match f {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut s = String::new();
+
+    match f.read_to_string(&mut s) {
+        Ok(_) => Ok(s),
+        Err(e) => Err(e),
+    }
+}
+```
+
+Rust において、この種のエラー委譲は非常に一般的なので `?` 演算子を使ったショートカット構文が存在する
+
+```rust
+use std::io;
+use std::io::Read;
+use std::fs::File;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    // ? は Ok ならばその値を返し、Err ならば return キーワードを使ったようにそれを関数から返却する
+    let mut f = File::open("hello.txt")?;
+    let mut s = String::new();
+    f.read_to_string(&mut s)?;
+    Ok(s)
+}
+```
+ 
+* `?` 演算子と `match` 式には違いがある
+* `?` の場合は、受け取ったエラー型が現在の関数の戻り値型で定義されているエラー型に変換される
+* 標準ライブラリの `From` トレイトの `from` 関数を通ることにより実現される
+* `?` は `Result` を返す関数でしか使用することができない
+
+`?` 呼び出し後の処理を連結することで以下のようにさらに簡潔に書くこともできる
+
+```rust
+use std::io;
+use std::io::Read;
+use std::fs::File;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut s = String::new();
+
+    File::open("hello.txt")?.read_to_string(&mut s)?;
+
+    Ok(s)
+}
+```
