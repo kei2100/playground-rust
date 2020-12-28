@@ -2234,4 +2234,140 @@ panic! する際のガイドライン
 
 # ジェネリック型、トレイト、ライフタイム
 
+## ジェネリックなデータ型
+
+### 関数定義では
+
+イメージ的には以下のような形でジェネリックな関数定義を行う
+
+```rust
+fn largest<T>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list.iter() {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+
+ただしこちらはこのままではコンパイルできない。
+すべての T となりうる型が比較可能でない可能性があるため。
+これにはジェネリックな型を特定のトレイトを持つものに限定することで解消できるが、後ほど説明する
+
+```
+error[E0369]: binary operation `>` cannot be applied to type `T`
+(エラー: 2項演算`>`は、型`T`に適用できません)
+ --> src/main.rs:5:12
+  |
+5 |         if item > largest {
+  |            ^^^^^^^^^^^^^^
+  |
+  = note: an implementation of `std::cmp::PartialOrd` might be missing for `T`
+  (注釈: `std::cmp::PartialOrd`の実装が`T`に対して存在しない可能性があります)
+
+```
+
+### 構造体定義では
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}
+```
+
+複数の型に対応するならば以下のようにかける
+
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let integer_and_float = Point { x: 5, y: 4.0 };
+}
+```
+
+### enum 定義では
+
+標準ライブラリの Option や Result の定義
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+### メソッド定義では
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+```
+
+ジェネリックな型を持つ `Point<T>` インスタンスではなく、`Point<f32>` にのみ、メソッドを実装したい場合、以下のようにできる。
+
+```rust
+impl Point<f32> {
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+```
+
+### ジェネリクスを使用したコードのパフォーマンス
+
+* Rust では、ジェネリックな型を使用したコードが、具体的な型を使用したコードよりも遅くならないように実装されている。
+* コンパイル時に単相化(monomorphization)を行っている。単相化は、コンパイル時に使用されている具体的な型を入れ、ジェネリックなコードを特定の型のコードに変換する。
+
+
+## トレイト: 共通の振る舞いを定義する
+
+* 特定の型に存在し、他の型と共有できる機能
+* 共通の振る舞いを抽象的に表現できる
+
+### トレイトを定義する
+
 TODO
