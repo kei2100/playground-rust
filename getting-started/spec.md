@@ -2367,7 +2367,120 @@ impl Point<f32> {
 
 * 特定の型に存在し、他の型と共有できる機能
 * 共通の振る舞いを抽象的に表現できる
+* 違いはあるものの、他言語のインターフェース機能に類似している
 
 ### トレイトを定義する
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+```
+
+### トレイトを方に実装する
+
+```rust
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {  // impl の後に実装するトレイトの名前、for の後に実装対象の型を指定する
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+トレイトの制限
+
+* トレイトか、あるいは実装対象の型がクレートローカルである場合にのみ、型に対してトレイトを実装できる
+  * 上記例でいうと、標準ライブラリのトレイト `Display` を `NewsArticle` に実装することは、`NewsArticle` 型がクレートローカルであるため可能である
+  * クレートローカルのトレイト `Summary` を、標準ライブラリの型 `Vec<T>` に実装することは、`Summary` トレイトがクレートローカルであるため可能である
+* 外部のトレイトを外部の型に対して実装することはできない
+  * 外部のトレイト `Display` を、外部の型 `Vec<T>` に対して実装することはできない
+  * coherence, orphan rule と呼ばれ、この規則により、他の人のコードが自分のコードを壊すことがないことを保障する
+  * この規則がないと、2つのクレートが同じ型に対して同じトレイトを実装できてしまい、 コンパイラはどちらの実装を使うべきかわからなくなってしまう
+
+### デフォルト実装
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String { // ブロックを続けることでデフォルト定義になる
+        // "（もっと読む）"
+        String::from("(Read more...)")
+    }
+}
+
+impl Summary for NewsArticle {} // デフォルト実装の利用
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {  // デフォルト実装のオーバーライドになる
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+トレイトのデフォルト実装から、デフォルト実装を持たない他のメソッドを呼び出すことができる
+
+```rust
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        // "（{}さんの文章をもっと読む）"
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+```
+
+### 引数としてのトレイト
+
+以下のようにすることで、引数として `Summary` トレイトを実装するものを受け取ることができる
+
+```rust
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+#### トレイト境界構文
+
+実は上記は **トレイト境界 (trait bound)** と呼ばれる以下のような記述のシンタックスシュガーである
+
+```rust
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+並べて比較すると以下のような感じ
+```rust
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {
+}
+
+pub fn notify<T: Summary>(item1: &T, item2: &T) {
+}
+```
+
+簡単なケースに対し `impl Trait` 構文はコードを簡潔にすることができ便利。
+より複雑なケースの場合、トレイト境界構文で複雑な状態を表現することができる。
+
+#### 複数のトレイト境界を `+` 構文で指定する
 
 TODO
