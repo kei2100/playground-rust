@@ -2483,4 +2483,73 @@ pub fn notify<T: Summary>(item1: &T, item2: &T) {
 
 #### 複数のトレイト境界を `+` 構文で指定する
 
+`Summary` と標準ライブラリの `Display` 両方を実装する引数を指定するには以下のように `+` 構文を使う
+
+```rust
+pub fn notify(item: &(impl Summary + Display)) {
+}
+
+// トレイト境界構文
+pub fn notify<T: Summary + Display>(item: &T) {
+}
+```
+
+#### `where` 句を使ったより明確なトレイト境界
+
+大量のトレイト境界に関する情報をメソッドシグネチャに指定すると読みづらくなる
+
+```rust
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {
+}
+```
+
+代わりに `where` 句を使って、より簡潔に記載することができる
+
+```rust
+fn some_function<T, U>(t: &T, u: &U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug
+{
+}
+```
+
+### トレイトを実装している型を返す
+
+```rust
+// Summary を実装する何らかの型を返す
+fn returns_summarizable() -> impl Summary {
+}
+```
+
+`-> impl Trait` は一種類の型を返す場合にのみ使える。例えば以下のように `NewsArticle` か `Tweet` を返すようなコードは失敗する
+
+```rust
+fn returns_summarizable(switch: bool) -> impl Summary {
+    if switch {
+        NewsArticle {
+            headline: String::from(
+                "Penguins win the Stanley Cup Championship!",
+            ),
+            location: String::from("Pittsburgh, PA, USA"),
+            author: String::from("Iceburgh"),
+            content: String::from(
+                "The Pittsburgh Penguins once again are the best \
+                 hockey team in the NHL.",
+            ),
+        }
+    } else {
+        Tweet {
+            username: String::from("horse_ebooks"),
+            content: String::from(
+                "of course, as you probably already know, people",
+            ),
+            reply: false,
+            retweet: false,
+        }
+    }
+}
+```
+
+### トレイト境界を使用して、メソッド実装を条件分けする
+
 TODO
