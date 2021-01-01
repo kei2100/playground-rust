@@ -2552,4 +2552,51 @@ fn returns_summarizable(switch: bool) -> impl Summary {
 
 ### トレイト境界を使用して、メソッド実装を条件分けする
 
+以下は、Pair インスタンス作成時の `T` が、`Display` と `PartialOrd` トレイトを実装する場合にのみ有効となる `cmp_display` メソッドを定義している
+
+```rust
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+// T が Display + PartialOrd を実装する場合にのみ有効となるメソッド
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+```
+
+あるトレイトを実装するあらゆる型、それに対するトレイト実装を行うこともできる。
+以下は標準ライブラリの例だが、`Display` トレイトを実装するあらゆる型 `T` に、`ToString` トレイト実装を行っている。
+このような実装は **ブランケット実装** と呼ばれている。
+
+```rust
+pub trait ToString {
+    fn to_string(&self) -> String;
+}
+
+// ブランケット実装
+impl<T: Display> ToString for T {
+    // --snip--
+}
+```
+
+
+## ライフタイムで参照を検証する
+
 TODO
+
