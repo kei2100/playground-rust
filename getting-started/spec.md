@@ -2930,4 +2930,91 @@ fn it_works() -> Result<(), String> {
 
 ## テストの実行のされ方を制御する
 
+* `cargo test` はコードをテストモードでコンパイルし、出来上がったテストバイナリを実行する
+* テストバイナリの既定動作は、テストを全て並行に実行し、出力をキャプチャしテスト結果に関係する出力を読みやすくする
+* `cargo test --help` で `test` のヘルプを、`cargo test -- --help` で `cargo test --` の区分記号の後に使えるオプションが表示される
+* `cargo test -- --test-threads=1`: テスト実行スレッド数（並列度）指定
+* `cargo test -- --nocapture`: テスト対象関数の出力をキャプチャせずそのまま出力
+* `cargo test <function name prefix>`: テスト対象関数名を指定
+* `cargo test -- --ignored`: `#[ignore]` で ignore にしたテスト関数を実行
+
+## テストの体系化
+
+* Rust ではテストを「単体テスト」と「結合テスト」の2つのカテゴリで捉えている
+* 単体テスト
+  * 小規模で集中
+  * 一回に一モジュールをテスト
+  * 非公開のインターフェースをテストすることもある
+* 結合テスト
+  * ライブラリ外から、外部コードが自分のコードを使うのと同様にテストする
+  * 公開インターフェースのみを使用
+  * 一回に複数のモジュールをテストすることもある
+
+### 単体テスト
+
+* 慣習的に、src 配下の、テスト対象のコードが含まれる各ファイルに `tests` という名前のモジュールを作り、テスト関数を実装し、そのモジュールを `#[cfg(test)]` で注釈する
+* `#[cfg(test)]` とすることで、`cargo build` ではなく `cargo test` を走らせたときだけテストコードをコンパイルするよう指示することができる
+  * 結合テストは src とは別のディレクトリに作成するので `#[cfg(test)]` は必要ない
+
+例: src/lib.rs
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+}
+```
+
+### 結合テスト
+
+* src と同じ階層の tests ディレクトリに結合テスト用のファイルを配置する
+* 結合テストファイルはいくつでも配置でき、それぞれ個別のクレートとしてコンパイルされる
+
+例: tests/integration_test.rs
+
+```rust
+extern crate adder;
+
+#[test]
+fn it_adds_two() {
+    assert_eq!(4, adder::add_two(2));
+}
+```
+
+* それぞれの結合テストでコードを共有したい場合、`tests/<module_name>/mod.rs` のようなモジュールにそれを配置する
+
+例: 
+tests/common/mod.rs
+
+```rust
+pub fn setup() {
+    // ...
+}
+```
+
+tests/integration_test.rs
+
+```rust
+extern crate adder;
+
+mod common;
+
+#[test]
+fn it_adds_two() {
+    common::setup();
+    assert_eq!(4, adder::add_two(2));
+}
+```
+
+### バイナリクレート用の結合テスト
+
+* `src/main.rs` ファイルのみを含むバイナリクレートだったら、 testsディレクトリに結合テストを作成し、 extern crateを使用して `src/main.rs` ファイルに定義された関数をインポートすることはできない
+* そのため、バイナリ提供する Rust プロジェクトでは、しばしば　`src/lib.rs` にロジックを配置し `src/main.rs` はそれを呼び出すだけになっているものがある。ロジックを lib.rs に配置することで、結合テスト対象にすることができる
+
+
+# 入出力プロジェクト: コマンドラインプログラムを構築する
+
 TODO
