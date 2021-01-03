@@ -2795,4 +2795,135 @@ impl<'a> ImportantExcerpt<'a> {
 
 # 自動テストを書く
 
-TODO
+## テストの記述法
+
+* `#[test]` で注釈された関数がテスト関数となる
+* `cargo test` でそのプロジェクトの全テスト実行
+* Rust の Nightly ビルドでベンチマークテストも利用可能になっている
+* テスト関数実行中のスレッドが `panic!` に遭遇するとそのテストは失敗とマークされる  
+
+```rust
+// シンプルなテスト
+#[test]
+fn it_works() {
+    assert_eq!(2 + 2, 4)
+}
+```
+
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+
+// テストを内部モジュールにまとめている
+#[cfg(test)]
+mod tests {
+    // Rectangle を import　するために use super::*; する
+    use super::*;
+
+    #[test]
+    fn larger_can_hold_smaller() {
+        let larger = Rectangle {
+            width: 8,
+            height: 7,
+        };
+        let smaller = Rectangle {
+            width: 5,
+            height: 1,
+        };
+
+        assert!(larger.can_hold(&smaller));
+    }
+}
+```
+
+### `assert_eq!` と `assert_ne!` で等価性をテストする
+
+* `assert_eq!` と `assert_ne!` マクロで等価性のアサーションができる
+* `==` と `!=` を利用してアサーションするので、比較対象の値は `PartialEq` と `Debug` トレイトを実装していなければならない
+* どちらのトレイトも導出可能なトレイトなので、通常は単純に構造体や enum 定義に `#[derive(PartialEq, Debug)]` を注釈するだけで使える
+
+### カスタムの失敗メッセージを追加する
+
+* `assert!` マクロなどに追加引数でカスタムメッセージを追加することができる
+
+```rust
+pub fn greeting(name: &str) -> String {
+    String::from("Hello!")
+}
+
+#[test]
+fn greeting_contains_name() {
+    let result = greeting("Carol");
+    assert!(
+        result.contains("Carol"),
+        //挨拶(greeting)は名前を含んでいません。その値は`{}`でした
+        "Greeting did not contain name, value was `{}`",
+        result
+    );
+}
+```
+
+### `should_panic` でパニックを確認する
+
+* `#[should_panic]` で関数を注釈することでパニックすることを検証できる
+
+```rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 {
+            panic!(
+                //予想値は1以上でなければなりませんが、{}でした。
+                "Guess value must be greater than or equal to 1, got {}.",
+                value
+            );
+        } else if value > 100 {
+            panic!(
+                //予想値は100以下でなければなりませんが、{}でした。
+                "Guess value must be less than or equal to 100, got {}.",
+                value
+            );
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    //予想値は100以下でなければなりません
+    #[should_panic(expected = "Guess value must be less than or equal to 100")]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+```
+
+### `Result<T, E>` をテストで使う
+
+* パニックや assert の代わりに、テスト関数で `Result<T, E>` を返してテストすることもできる
+
+```rust
+fn it_works() -> Result<(), String> {
+    if 2 + 2 == 4 {
+        Ok(())
+    } else {
+        Err(String::from("two plus two does not equal four"))
+    }
+}
+```
