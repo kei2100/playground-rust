@@ -3021,4 +3021,129 @@ https://github.com/kei2100/playground-rust/tree/main/minigrep
 
 # 関数型言語の機能: イテレータとクロージャ
 
+## クロージャ: 環境をキャプチャできる匿名関数
+
+```rust
+let expensive_closure = |num| {  // クロージャ本体が式一つなら、波括弧は省略可能
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    num // クロージャの戻り値
+};
+```
+
+### クロージャの型推論と注釈
+
+* クロージャのスコープはごく限定的となることが多いので、多くの場合型推論が効く
+* 必要な場合は以下のように注釈することが可能
+
+```rust
+let expensive_closure = |num: u32| -> u32 {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    num
+};
+```
+
+### ジェネリック引数とFnトレイトを使用してクロージャを保存する
+
+`Fn` トレイトを使って、クロージャやクロージャ呼び出し結果の値をキャッシュする構造体を作成できる
+
+```rust
+struct Cacher<T>
+    where T: Fn(u32) -> u32
+{
+    calculation: T, // calculation は Fn(u32) -> u32 のクロージャを保持する
+    value: Option<u32>,
+}
+
+impl<T> Cacher<T>
+    where T: Fn(u32) -> u32
+{
+    fn new(calculation: T) -> Cacher<T> {
+        Cacher {
+            calculation,
+            value: None,
+        }
+    }
+
+    // value 関数は self.value に値がなければ calculation クロージャを実行し、値をキャッシュし返却する。
+    fn value(&mut self, arg: u32) -> u32 {
+        match self.value {
+            Some(v) => v,
+            None => {
+                let v = (self.calculation)(arg);
+                self.value = Some(v);
+                v
+            },
+        }
+    }
+}
+
+fn foo() {
+    // Cacher の生成
+    let mut expensive_result = Cacher::new(|num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    });
+    println!(
+        "Today, do {} pushups!",
+        expensive_result.value(intensity)
+    );}
+```
+
+### クロージャで環境をキャプチャする
+
+他言語のクロージャと同じように、クロージャ定義時のスコープをキャプチャできる。
+クロージャが環境から値をキャプチャすると、メモリを使用してクロージャ本体で使用できるようにその値を保存する。
+
+```rust
+fn main() {
+    let x = 4;
+
+    let equal_to_x = |z| z == x;
+
+    // 以下のように、クロージャではなく関数にすると x をキャプチャすることはできないので
+    // コンパイルエラーとなる
+    // fn equal_to_x(z: i32) -> bool { z == x }
+
+    let y = 4;
+
+    assert!(equal_to_x(y));
+}
+```
+
+
+クロージャは３つの方法で環境から値をキャプチャできる。これらはそれぞれ以下のように `Fn` トレイトでコード化されている。
+
+* 所有権を奪う: `FnOnce` トレイト。環境から値をムーブする。
+* 可変で借用する: `FnMut` トレイト。可変で値を借用するので、環境を変更することができる
+* 不変で借用する: `Fn` トレイト。環境から不変で値を借用する。
+
+クロージャを生成する際、コンパイラがどのトレイトを使うか推論する。
+
+* 全てのクロージャは少なくとも1回は呼び出されるので、全てのクロージャは `FnOnce` を実装している
+* キャプチャした変数をムーブしないクロージャは、 `FnMut` も実装する
+* キャプチャした変数に可変でアクセスする必要のないクロージャは、`Fn` も実装している
+
+環境でクロージャが使用している値の所有権を奪うことをクロージャに強制したいなら、引数リストの前にmoveキーワードを使用できる。
+このテクニックは、新しいスレッドにデータが所有されるように、クロージャを新しいスレッドに渡して、 データをムーブする際に大概は有用。
+
+```rust
+fn main() {
+    let x = vec![1, 2, 3];
+
+    let equal_to_x = move |z| z == x;
+
+    // ここでは、xを使用できません: {:?}
+    println!("can't use x here: {:?}", x);
+
+    let y = vec![1, 2, 3];
+
+    assert!(equal_to_x(y));
+}
+```
+
+## 一連の要素をイテレータで処理する
+
 TODO
