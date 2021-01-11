@@ -1,8 +1,7 @@
 extern crate minigrep;
 
-use std::{env, process};
 use minigrep::Config;
-
+use std::{env, process};
 
 // Rust コミュニティの main 関数ガイドライン
 //
