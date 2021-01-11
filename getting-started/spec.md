@@ -3017,4 +3017,8 @@ fn it_adds_two() {
 
 # 入出力プロジェクト: コマンドラインプログラムを構築する
 
+https://github.com/kei2100/playground-rust/tree/main/minigrep
+
+# 関数型言語の機能: イテレータとクロージャ
+
 TODO
