@@ -3146,4 +3146,17 @@ fn main() {
 
 ## 一連の要素をイテレータで処理する
 
+```rust
+let v1 = vec![1, 2, 3];
+
+// Rust においてイテレータは怠惰。つまりイテレータを使い込んで消費するメソッドを呼ぶまではなんの効果もない
+let v1_iter = v1.iter();
+
+for val in v1_iter {
+    println!("Got: {}", val);
+}
+```
+
+### Iterator トレイトと next メソッド
+
 TODO
