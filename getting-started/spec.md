@@ -3159,4 +3159,61 @@ for val in v1_iter {
 
 ### Iterator トレイトと next メソッド
 
+* 全てのイテレータは、標準ライブラリの `Iterator` を実装している
+* `type Item` と `Self::Item` というのはトレイトの **関連型** と呼ばれるもの。詳しくは後述
+* `next` メソッドは、イテレータに次の要素がある場合、`Some<Self::Item>` を返却し、なければ `None` を返却する
+
+```rust
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
+
+    // デフォルト実装のあるメソッドは省略
+    // methods with default implementations elided
+}
+```
+
+* next メソッドを直接呼び出した場合の挙動は以下のようになる
+* 直接呼び出す場合は、イテレータに副作用があるので、`let mut v1_iter` のように可変にする必要がある。for ループでは `v1_iter` を可変にする必要がなかったが、これはループが `v1_iter` の所有権を奪い可変にするといった操作を裏で実行しているから
+* next はベクタ値の不変な参照であることにも注目
+* `v1` の所有権を奪い、所有された値をを返すイテレータがほしいなら `v1.into_iter()` を呼び出す
+* また、ベクタ値の可変な参照がほしいなら、`v1.iter_mut` を呼び出す
+
+```rust
+#[test]
+fn iterator_demonstration() {
+    let v1 = vec![1, 2, 3];
+
+    let mut v1_iter = v1.iter();
+
+    assert_eq!(v1_iter.next(), Some(&1));
+    assert_eq!(v1_iter.next(), Some(&2));
+    assert_eq!(v1_iter.next(), Some(&3));
+    assert_eq!(v1_iter.next(), None);
+}
+```
+
+### イテレータを消費するメソッド (consuming adaptors)
+
+* `Iterator` トレイトには、多くのデフォルト実装メソッドがある
+* それらのメソッドは、内部でイテレータの `next` メソッドを呼び出しイテレータを消費するため、**消費アダプタ (consuming adaptors)** と呼ばれる
+* 例えば `sum` メソッドはイテレータの所有権を奪い、`next` メソッドを呼び出し続けることでイテレータの要素数を数える。
+* `sum` メソッドはイテレータの所有権を奪うため、呼び出したあとにそのイテレータを使うことはできない
+
+```rust
+#[test]
+fn iterator_sum() {
+    let v1 = vec![1, 2, 3];
+
+    let v1_iter = v1.iter();
+
+    let total: i32 = v1_iter.sum();
+
+    assert_eq!(total, 6);
+}
+```
+
+### 他のイテレータを生成するメソッド (iterator adaptors)
+
 TODO
