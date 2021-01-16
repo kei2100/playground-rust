@@ -3216,4 +3216,17 @@ fn iterator_sum() {
 
 ### 他のイテレータを生成するメソッド (iterator adaptors)
 
+* イテレータを別のイテレータに変えるものを **イテレータアダプタ (iterator adaptors)** と呼ぶ
+
+```rust
+let v1: Vec<i32> = vec![1, 2, 3];
+
+// map はクロージャを取り、イテレータの要素をそのクロージャにより変更するイテレータアダプタ
+let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+
+assert_eq!(v2, vec![2, 3, 4]);
+```
+
+### 環境をキャプチャするクロージャを使用する
+
 TODO
