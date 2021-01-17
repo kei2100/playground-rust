@@ -3275,6 +3275,104 @@ fn calling_next_directly() {
 * 内部実装がゼロコスト抽象化原則に従っている限り、低レベルなループと高レベルなイテレータでパフォーマンスが異なることはない
 
 
-# CargoとCrates.ioについてより詳しく
+# Cargo と Crates.io についてより詳しく
+
+## リリースプロファイルでビルドをカスタマイズする
+
+* Cargo には `dev` プロファイルと `release` プロファイルの2つのプロファイルが用意されている
+* `cargo build` は `dev` プロファイル、`cargo build --release` で `release` プロファイルになる
+* `dev`　は開発用、`release` はリリース用にそれぞれ最適化されたビルドを実行するが Cargo.toml でその動作をカスタマイズできる
+* それぞれのプロファイルの設定一覧は https://doc.rust-lang.org/cargo/ を参照
+　
+```toml
+# デフォルトは以下で、それぞれ変更可能
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+```
+
+## Crates.io にクレートを公開する
+
+### 役に立つドキュメンテーションコメントをする
+
+```rust
+/// Adds one to the number given.
+/// 与えられた数値に1を足す。
+///
+/// # Examples
+///
+/// ```
+/// let five = 5;
+///
+/// assert_eq!(6, my_crate::add_one(5));
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+
+* `///` でコメントを始めると Markdown を記述できる
+* `cargo doc --open` をすると現在のクレートのドキュメント HTML をブラウザで開くことができる
+* `# Examples` セクション以外によく使われるセクション
+  * `# Panics`: 対象の関数などが `panic!` する可能性のある筋書きを記載する
+  * `# Errors`: 対象の関数が `Result` を返すなら、起きうるエラーの種類とその条件を記載する
+  * `# Safety`: 対象の関数を呼び出すのが `unsafe` なら、その理由と呼び出し元に保持していると期待する不変条件を記載する
+
+### テストとしてのドキュメンテーションコメント
+
+```rust
+/// Adds one to the number given.
+/// 与えられた数値に1を足す。
+///
+/// # Examples
+///
+/// ```
+/// let five = 5;
+///
+/// assert_eq!(6, minigrep::add_one(5));
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+* 上記のような `///` のコメント内に書かれたコード片は `cargo test` でテストすることができる。
+
+### 含まれている要素にコメントする
+
+```rust
+//! # My Crate
+//!
+//! `my_crate` is a collection of utilities to make performing certain
+//! calculations more convenient.
+
+//! #自分のクレート
+//!
+//! `my_crate`は、ユーティリティの集まりであり、特定の計算をより便利に行うことができます。
+
+/// Adds one to the number given.
+/// 与えられた数値に1を足す。
+///
+/// # Examples
+///
+/// ```
+/// let five = 5;
+///
+/// assert_eq!(6, minigrep::add_one(5));
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+
+* `//!` は慣例的に `src/lib.rs` などで使用され、クレートやモジュール全体のコメントとなる
+* markdown が書ける
+
+### `pub use` で便利な公開 API をエクスポートする
+
+* `pub use` で深い階層の公開 API をクレートのルートなどの API としてエクスポートすることができる
+
+### Crates.ioのアカウントをセットアップする
 
 TODO
