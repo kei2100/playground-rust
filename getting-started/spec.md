@@ -3373,6 +3373,77 @@ pub fn add_one(x: i32) -> i32 {
 
 * `pub use` で深い階層の公開 API をクレートのルートなどの API としてエクスポートすることができる
 
-### Crates.ioのアカウントをセットアップする
+### Crates.io のアカウントをセットアップする
+
+* `$ cargo login <access token>` で https://crates.io/me/ で発行したアクセストークンを設定する
+* `~/.cargo/credentials` に保存される
+
+### Crates.io に公開する
+
+* Cargo.toml にパッケージに関する情報を記載し `cargo publish` すると公開される
+* 公開は永久で、バージョンは上書きできず削除もできないので注意すること
+
+```toml
+[package]
+name = "guessing_game"
+version = "0.1.0"
+authors = ["Your Name <you@example.com>"]
+description = "A fun game where you guess what number the computer has chosen."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+...
+```
+
+### cargo yank で Crates.io からバージョンを取り下げる
+
+* 削除はできないものの、`cargo yank --vers <version>` すると他のパッケージが新たにこのパッケージに依存することを防ぐことができる
+* `cargo yank --vers <version> --undo` で取り下げのキャンセルもできる
+
+
+## Cargo のワークスペース
+
+* ワークスペース機能で、一つのライブラリクレートを複数のライブラリクレートに分割できる
+* ワークスペースは、一つの Cargo.lock と出力ディレクトリを共有する
+
+
+すでにある 「adder」 バイナリクレートに 「add-one」 ライブラリクレートを追加するような場合、
+
+```toml
+[workspace]
+
+members = [
+    "adder",
+    "add-one", # 追加
+]
+```
+
+を追加して、`cargo new add-one --lib` すると以下のディレクトリ構造を得る
+
+```
+├── Cargo.lock
+├── Cargo.toml
+├── add-one
+│   ├── Cargo.toml
+│   └── src
+│       └── lib.rs
+├── adder
+│   ├── Cargo.toml
+│   └── src
+│       └── main.rs
+└── target
+```
+
+adder から add-one への依存を作成するには、adder/Cargo.tml に以下を記載する
+
+```toml
+[dependencies]
+
+add-one = { path = "../add-one" }
+```
+
+* `cargo test -p add-one` のようにすると特定のクレートのみテストすることができる
+
+## cargo installでCrates.ioからバイナリをインストールする
 
 TODO
