@@ -3446,4 +3446,15 @@ add-one = { path = "../add-one" }
 
 ## cargo installでCrates.ioからバイナリをインストールする
 
+* crates.io に登録されたバイナリクレートは `cargo install <crate name>` でインストールすることができる
+* `rustup` でセットアップした際のデフォルトのバイナリインストールパスは `$HOME/.cargo/bin`
+
+## 独自のコマンドで Cargo を拡張する
+
+* $PATH にあるバイナリが `cargo-something` のような名前なら、`cargo something` を実行することで Cargo のサブコマンドであるかのように実行することができる
+* `cargo --list` するとそのようなコマンドを列挙することができる
+
+
+# スマートポインタ
+
 TODO
