@@ -3485,4 +3485,77 @@ add-one = { path = "../add-one" }
 
 ### `Box<T>` を使ってヒープにデータを格納する
 
+```rust
+fn main() {
+    let b = Box::new(5);
+    println!("b = {}", b);
+}
+```
+
+* 上記コードにおいて、i32 の 5 はスタックではなくヒープに配置される
+* `b` 自体はスタックに配置される
+* main を抜けると、スタックに配置されている `b` も、ヒープに配置されている `5` もメモリ解放される
+
+### ボックスで再帰的な型を可能にする
+
+コンスリストのような再帰的な型の場合、値のネストが無限に続く可能性があるので、コンパイラはその値を格納するのに必要な領域を決定できない。
+
+```rust
+enum List {
+    Cons(i32, List),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Cons(2, Cons(3, Nil)));
+}
+```
+
+上記 `List::Cons` の必要なサイズを計算するには、内包する `List` のサイズを知ることが必要で、定義上はそれが再帰的に無限に続く可能性がある。
+そのため上記コードは `list` をスタックに配置するのに必要なサイズを決定できず、コンパイルエラーとなる。
+
+
+```rust
+error[E0072]: recursive type `List` has infinite size
+(エラー: 再帰的な型`List`は無限のサイズです)
+ --> src/main.rs:1:1
+  |
+1 | enum List {
+  | ^^^^^^^^^ recursive type has infinite size
+2 |     Cons(i32, List),
+  |               ----- recursive without indirection
+  |
+  = help: insert indirection (e.g., a `Box`, `Rc`, or `&`) at some point to
+  make `List` representable
+  (助言: 間接参照(例: `Box`、`Rc`、あるいは`&`)をどこかに挿入して、`List`を表現可能にしてください)
+```
+
+これは Box を使って以下のようにすることでコンパイルエラーを解消することができる
+
+```rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1,
+        Box::new(Cons(2,
+            Box::new(Cons(3,
+                Box::new(Nil))))));
+}
+```
+
+上記 `List::Cons` は、先程と違い、`List` ではなく `Box<List>` を持つ。
+`Box<T>` はポインタなので、コンパイラが必要な領域を決定できコンパイルエラーは解消される。
+
+`Box<T>` 型は、Deref トレイトを実装しているので、スマートポインタであり、 このトレイトにより `Box<T>` の値を参照のように扱うことができる。
+`Box<T>` 値がスコープを抜けると、 Drop トレイト実装によりボックスが参照しているヒープデータも片付けられる
+
+## Deref トレイトでスマートポインタを普通の参照のように扱う
+
 TODO
