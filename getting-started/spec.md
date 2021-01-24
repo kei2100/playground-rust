@@ -3686,6 +3686,63 @@ fn main() {
 
 3つめのケースは巧妙。Rust は可変参照から不変参照への型強制を行う。が、その逆はない
 
+
 ## Drop トレイトで片付け時にコードを走らせる
+
+* `Drop` トレイトを実装することで、値がスコープを抜けるときの動作をカスタマイズすることができる
+* ファイルやネットワーク接続などのリソース解放を実装するのにも便利
+* `Drop` トレイトは、スマートポインタを実装するときにほぼ常に使われる
+* 例えば `Box` は、　`Drop` トレイトを実装して、スコープを外れる際にボックスが指しているヒープの領域を解放する
+
+```rust
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer { data: String::from("my stuff") };
+    let d = CustomSmartPointer { data: String::from("other stuff") };
+    println!("CustomSmartPointers created.");
+}
+```
+
+上記プログラムの実行すると下記の出力を得る
+
+```
+CustomSmartPointers created.
+Dropping CustomSmartPointer with data `other stuff`!
+Dropping CustomSmartPointer with data `my stuff`!
+```
+
+### `std::mem::drop` で早期に値をドロップする
+
+* Rust は drop を手動で呼び出すことはできない (error[E0040]: explicit use of destructor method)
+* 値をスコープから抜ける前に早期に片付けたいときは `std::mem::drop` を利用することができる
+* `std::mem::drop` は初期化処理に含まれているので `drop(val)` と呼び出すことができる
+
+```rust
+fn main() {
+    let c = CustomSmartPointer { data: String::from("some data") };
+    println!("CustomSmartPointer created.");
+    drop(c);
+    println!("CustomSmartPointer dropped before the end of main.");
+}
+```
+
+上記プログラムを実行すると下記の出力を得る
+
+```
+CustomSmartPointer created.
+Dropping CustomSmartPointer with data `some data`!
+CustomSmartPointer dropped before the end of main.
+```
+
+### `Rc<T>` は、参照カウント方式のスマートポインタ
 
 TODO
