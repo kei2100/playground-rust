@@ -3743,6 +3743,84 @@ Dropping CustomSmartPointer with data `some data`!
 CustomSmartPointer dropped before the end of main.
 ```
 
-### `Rc<T>` は、参照カウント方式のスマートポインタ
+## `Rc<T>` は、参照カウント方式のスマートポインタ
+
+* ときに単独の値が複数の所有者をもつ場合がある
+* 例えばグラフ構造。グラフ構造では一つのノードに複数の辺が結びつくことがあり、概念的にそのノードは複数の辺に所有されることになる。辺が亡くならない限り、ノードは片付けられるべきではない
+* Rust では `Rc<T>` を使うことで複数の所有権を表現することができる
+
+### `Rc<T>` でデータを共有する
+
+コンスリストを例に、以下 `a` の要素を `b` と `c` で共有する構造を `Rc<T>` で実現する
+
+![image](https://user-images.githubusercontent.com/1415655/105622299-bd877600-5e53-11eb-853e-3d255f89da1e.png)
+
+まず `Rc<T>` なしで以下のようなコードをコンパイルしようとするとエラーとなる。
+`let b` の時点で `a` の所有権が `b` にムーブされてしまうからである。
+
+```rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let a = Cons(5,
+        Box::new(Cons(10,
+            Box::new(Nil))));
+    let b = Cons(3, Box::new(a));
+    let c = Cons(4, Box::new(a)); // a が既にムーブされている !
+}
+```
+ 
+代わりに `Box<List>` を `Rc<List>` にする。
+これでコンパイルエラーは解消することができる。
+
+```rust
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+use std::rc::Rc;
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+}
+```
+
+`Rc<List>`　である `a` を `Rc::clone(&a)` して `b` と `c` で共有する。  `Rc::clone` するたびに参照カウントがインクリメントされる。`a` のコピーは作成されないのでコストはかからない。
+
+`Rc::strong_count(&a)` で `a` の現在の参照カウントを得ることができる。以下のコードで `Rc::clone` するたびに参照カウントがインクリメントされ、参照元がスコープから外れるとデクリメントされることが確認できる。
+
+```rust
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    println!("count after creating a = {}", Rc::strong_count(&a));
+    let b = Cons(3, Rc::clone(&a));
+    println!("count after creating b = {}", Rc::strong_count(&a));
+    {
+        let c = Cons(4, Rc::clone(&a));
+        println!("count after creating c = {}", Rc::strong_count(&a));
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+}
+```
+
+```
+count after creating a = 1
+count after creating b = 2
+count after creating c = 3
+count after c goes out of scope = 2
+```
+
+main を抜けるとカウントは 0 になり、`Rc<List>` も完全に片付けられる
+
+## `RefCell<T>` と内部可変性パターン
 
 TODO
