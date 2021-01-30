@@ -3846,4 +3846,30 @@ main を抜けるとカウントは 0 になり、`Rc<List>` も完全に片付�
 
 ### 内部可変性: 不変値への可変借用
 
+以下のコードは借用規則によりコンパイルできない。
+
+```rust
+fn main() {
+    let x = 5;
+    let y = &mut x;
+}
+```
+
+```
+error[E0596]: cannot borrow immutable local variable `x` as mutable
+ --> src/main.rs:3:18
+  |
+2 |     let x = 5;
+  |         - consider changing this to `mut x`
+3 |     let y = &mut x;
+  |                  ^ cannot borrow mutably
+
+```
+
+が、メソッド内において値を可変化するが、他のコードにとっては不変に見えることが有用な場合もある。
+そのようなときに `RefCall` を使い内部可変性を得ることができる。
+`RefCall` は借用規則を完全に回避できるわけではなく、コンパイルは通っても、実行時に借用規則を破ると `panic!` になる。
+
+### 内部可変性のユースケース: モックオブジェクト
+
 TODO
