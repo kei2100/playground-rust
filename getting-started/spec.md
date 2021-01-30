@@ -3836,13 +3836,13 @@ main を抜けるとカウントは 0 になり、`Rc<List>` も完全に片付�
 * 一つの可変参照か、複数の不変参照のどちらかが可能
 * 参照は常に有効でなければならない
 
-参照や `Box` では、借用規則を破るとコンパイルエラーとなる。`RefCall` ではコンパイルできるが実行時にパニックとなる
+参照や `Box` では、借用規則を破るとコンパイルエラーとなる。`RefCell` ではコンパイルできるが実行時にパニックとなる
 
 以下に、`Box<T>`, `Rc<T>`, `RefCell<T>` を選択する理由を要約する
 
 * `Rc` は同じデータに複数の所有者を持たしてくれる。他は単独の所有者
-* `Box` は不変借用も可変借用も可能で、借用規則をコンパイル時に精査できる。`Rc` は不変借用のみで、借用規則をコンパイル時に精査できる。`RefCall` は不変借用も可変参照も可能で、借用規則は実行時に精査される
-* `RefCall` は実行時に借用規則が精査されるので、`RefCall` 自体は不変でも、内部の値を可変化できる
+* `Box` は不変借用も可変借用も可能で、借用規則をコンパイル時に精査できる。`Rc` は不変借用のみで、借用規則をコンパイル時に精査できる。`RefCell` は不変借用も可変参照も可能で、借用規則は実行時に精査される
+* `RefCell` は実行時に借用規則が精査されるので、`RefCell` 自体は不変でも、内部の値を可変化できる
 
 ### 内部可変性: 不変値への可変借用
 
@@ -3867,9 +3867,133 @@ error[E0596]: cannot borrow immutable local variable `x` as mutable
 ```
 
 が、メソッド内において値を可変化するが、他のコードにとっては不変に見えることが有用な場合もある。
-そのようなときに `RefCall` を使い内部可変性を得ることができる。
-`RefCall` は借用規則を完全に回避できるわけではなく、コンパイルは通っても、実行時に借用規則を破ると `panic!` になる。
+そのようなときに `RefCell` を使い内部可変性を得ることができる。
+`RefCell` は借用規則を完全に回避できるわけではなく、コンパイルは通っても、実行時に借用規則を破ると `panic!` になる。
 
 ### 内部可変性のユースケース: モックオブジェクト
+
+以下は `LimitTracker` というある値と、そのしきい値のトラッキングを行う構造体。
+`LimitTracker` は `set_value` でセットされた値がしきい値に近づいていたり、あるいは超えていたりすると、保持する `Messenger` トレイトのインスタンスに警告メッセージを送信する
+
+```rust
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+
+pub struct LimitTracker<'a, T: 'a + Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl<'a, T> LimitTracker<'a, T>
+    where T: Messenger {
+    pub fn new(messenger: &T, max: usize) -> LimitTracker<T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+
+        let percentage_of_max = self.value as f64 / self.max as f64;
+
+        if percentage_of_max >= 0.75 && percentage_of_max < 0.9 {
+            self.messenger.send("Warning: You've used up over 75% of your quota!");
+        } else if percentage_of_max >= 0.9 && percentage_of_max < 1.0 {
+            self.messenger.send("Urgent warning: You've used up over 90% of your quota!");
+        } else if percentage_of_max >= 1.0 {
+            self.messenger.send("Error: You are over your quota!");
+        }
+    }
+}
+```
+
+`LimitTracker` の動作をテストするために、以下のようなモックを作成することができる。
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct MockMessenger {
+        sent_messages: Vec<String>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger { sent_messages: vec![] }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_messages.len(), 1);
+    }
+}
+```
+
+しかし、この `MockMessenger` はコンパイルできない。`self.sent_message.push` で `self` が不変なため。
+
+```
+error[E0596]: cannot borrow immutable field `self.sent_messages` as mutable
+  --> src/lib.rs:52:13
+   |
+51 |         fn send(&self, message: &str) {
+   |                 ----- use `&mut self` here to make mutable
+52 |             self.sent_messages.push(String::from(message));
+   |             ^^^^^^^^^^^^^^^^^^ cannot mutably borrow immutable field
+```
+
+エラーメッセージにサジェストされているような `self` を可変にすることもできない。`Messenger` トレイトのシグネチャに一致しなくなってしまうため。
+
+このようなときに `RefCell` を使って、以下のように書くことができる。
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger { sent_messages: RefCell::new(vec![]) }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.borrow_mut().push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        // --snip--
+
+        assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
+    }
+}
+```
+
+### RefCell で実行時に借用を追いかける　
 
 TODO
