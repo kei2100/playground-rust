@@ -3981,6 +3981,7 @@ mod tests {
 
     impl Messenger for MockMessenger {
         fn send(&self, message: &str) {
+            // borrow_mut で可変借用
             self.sent_messages.borrow_mut().push(String::from(message));
         }
     }
@@ -3988,12 +3989,67 @@ mod tests {
     #[test]
     fn it_sends_an_over_75_percent_warning_message() {
         // --snip--
-
+        // borrow で不変借用
         assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
     }
 }
 ```
 
 ### RefCell で実行時に借用を追いかける　
+
+* 不変および可変参照を作成するとき、それぞれ `&` と `&mut` 記法を使用する
+* `RefCell<T>` でも同じように、`borrow`、`borrow_mut` を使用する。それぞれスマートポインタ型の `Ref<T>` と `RefMut<T>` を返却する
+* `Ref<T>` と `RefMut<T>` は `Deref` トレイトを実装しているので、普通の参照のように扱うことができる（`*` による暗黙的な `.deref()` 呼び出しや、参照外し型強制を参照）
+
+* `RefCell` は現在活動中の `Ref` と `RefMut` の数を追いかけている
+* `borrow` 呼び出しのたびに、活動中の不変参照をインクリメントする。`Ref` の値がスコープを抜ければデクリメントする
+* このようにして、コンパイル時の借用規則と同じように複数の不変借用または1つの可変借用を管理している。規則を破ろうとするとパニックする
+
+### Rc と RefCell を組み合わせることで可変なデータに複数の所有者をもたせる
+
+* `Rc<T>` は複数の所有者をもたせることができるが、通常それは不変なアクセスしかできない
+* しかし `RefCell<T>` を `Rc<T>` で抱えることで、複数の所有者をもち、可変化できる値を得ることができる
+
+複数の所有者をもつコンスリストの例
+
+```rust
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+fn main() {
+    let value = Rc::new(RefCell::new(5));
+
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+
+    let b = Cons(Rc::new(RefCell::new(6)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(10)), Rc::clone(&a));
+
+    *value.borrow_mut() += 10;
+
+    println!("a after = {:?}", a);
+    println!("b after = {:?}", b);
+    println!("c after = {:?}", c);
+}
+```
+
+実行すると以下の出力を得る。`a` の値が `b` と `c` の双方で共有されている
+
+```
+a after = Cons(RefCell { value: 15 }, Nil)
+b after = Cons(RefCell { value: 6 }, Cons(RefCell { value: 15 }, Nil))
+c after = Cons(RefCell { value: 10 }, Cons(RefCell { value: 15 }, Nil))
+```
+
+* 標準ライブラリには、`Cell<T>` などの内部可変性を提供する他の型もあり、この型は、内部値への参照を与える代わりに、 値はCell<T>の内部や外部へコピーされる点を除き似てる
+* また `Mutex<T>` もあり、 これはスレッド間で使用するのが安全な内部可変性を提供する
+
+## 循環参照は、メモリをリークすることもある
 
 TODO
