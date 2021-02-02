@@ -4137,3 +4137,54 @@ Rust のスレッドモデルは、OS スレッドと紐づく 1:1 モデル。
 スレッドが走るタイミングの詳細な制御や、より低コストなコンテキストスイッチなどのオーバーヘッドと引き換えに、M:N スレッドを実装するクレートもある。
 
 ### spawn で新規スレッドを生成する
+
+`thread::spawn` にクロージャを渡すと、新規にスレッドを生成できる。
+`thread::sleep` すると現在のスレッドをスリープし、おそらく違うスレッドに実行が切り替わるが、OS のスケジューラによるので保証はない。
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("hi number {} from the main thread!", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+```
+
+### join ハンドルで全スレッドの終了を待つ
+
+`thread::spawn` すると `JoinHandle` を戻り値として得ることができる。`JoinHandle の join()` を呼び出すことでそのスレッドの終了を待つことができる。 
+  
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let handle = thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("hi number {} from the main thread!", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+
+    handle.join().unwrap();
+}
+```
+
+### スレッドで `move` クロージャを使用する
+
+TODO
