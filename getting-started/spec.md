@@ -4187,4 +4187,57 @@ fn main() {
 
 ### スレッドで `move` クロージャを使用する
 
+`move` クロージャを使用することで、あるスレッドのデータを別のスレッドで使うことができるようになる。
+
+以下のコードは、`v` を別のスレッドで使用しようとしていることからコンパイルエラーとなる。
+
+```rust
+use std::thread;
+
+fn main() {
+    let v = vec![1, 2, 3];
+
+    let handle = thread::spawn(|| {
+        println!("Here's a vector: {:?}", v);
+    });
+
+    handle.join().unwrap();
+}
+```
+
+```
+error[E0373]: closure may outlive the current function, but it borrows `v`,
+which is owned by the current function
+ --> src/main.rs:6:32
+  |
+6 |     let handle = thread::spawn(|| {
+  |                                ^^ may outlive borrowed value `v`
+7 |         println!("Here's a vector: {:?}", v);
+  |                                           - `v` is borrowed here
+  |
+help: to force the closure to take ownership of `v` (and any other referenced
+variables), use the `move` keyword
+  |
+6 |     let handle = thread::spawn(move || {
+  |                           
+```
+
+以下のように `move` クロージャを使うようにすれば、スレッドが `v` の所有権を奪えるので、コンパイルエラーを回避することができる。
+
+```rust
+use std::thread;
+
+fn main() {
+    let v = vec![1, 2, 3];
+
+    let handle = thread::spawn(move || {
+        println!("Here's a vector: {:?}", v);
+    });
+
+    handle.join().unwrap();
+}
+```
+
+## メッセージ受け渡しを使ってスレッド間でデータを転送する
+
 TODO
