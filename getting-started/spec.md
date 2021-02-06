@@ -4240,4 +4240,144 @@ fn main() {
 
 ## メッセージ受け渡しを使ってスレッド間でデータを転送する
 
+チャンネルを使って、スレッド間でデータの受け渡しをすることができる
+
+```rust
+use std::thread;
+use std::sync::mpsc;
+
+fn main() {
+    // mpsc => Multiple Produceer Single Consumer
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let val = String::from("hi");
+        // send で送信。
+        // send は Result<T, E> を返却し、既に受信側ドロップされ閉じられている場合はエラーとなる。
+        tx.send(val).unwrap();
+    });
+
+    // recv で受信。
+    // 値を受信するまでスレッドはブロックする。recv は Result<T, E> を返却し、送信側が閉じられた場合はエラーとなる。
+    // try_recv では、ノンブロッキングになる。
+    let received = rx.recv().unwrap();
+    println!("Got: {}", received);
+}
+```
+
+### チャンネルと所有権の転送
+
+send した値は所有権が奪われ、recv 側に所有権が渡される。したがって以下のようなコードはコンパイルエラーとなる。
+
+```rust
+use std::thread;
+use std::sync::mpsc;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let val = String::from("hi");
+        tx.send(val).unwrap();
+        println!("val is {}", val); // 所有権が既にムーブされている！
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Got: {}", received);
+}
+```
+
+```
+error[E0382]: use of moved value: `val`
+  --> src/main.rs:10:31
+   |
+9  |         tx.send(val).unwrap();
+   |                 --- value moved here
+10 |         println!("val is {}", val);
+   |                               ^^^ value used here after move
+   |
+   = note: move occurs because `val` has type `std::string::String`, which does
+not implement the `Copy` trait
+```
+
+### 複数の値を送信し、受信側が待機するのを確かめる
+
+rx をイテレーターとして扱うこともできる
+
+```rust
+use std::thread;
+use std::sync::mpsc;
+use std::time::Duration;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("hi"),
+            String::from("from"),
+            String::from("the"),
+            String::from("thread"),
+        ];
+
+        for val in vals {
+            tx.send(val).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+
+    // rx をイテレートする
+    for received in rx {
+        println!("Got: {}", received);
+    }
+}
+```
+
+### 転送機をクローンして複数の生成器を作成する
+
+mpsc は Multiple Producer Single Consumer。転送側をクローンすることで、Multiple Producer を実現することができる
+
+```rust
+let (tx, rx) = mpsc::channel();
+
+let tx1 = mpsc::Sender::clone(&tx);
+
+// use tx1
+thread::spawn(move || {
+    let vals = vec![
+        String::from("hi"),
+        String::from("from"),
+        String::from("the"),
+        String::from("thread"),
+    ];
+
+    for val in vals {
+        tx1.send(val).unwrap();
+        thread::sleep(Duration::from_secs(1));
+    }
+});
+
+// use tx
+thread::spawn(move || {
+    let vals = vec![
+        String::from("more"),
+        String::from("messages"),
+        String::from("for"),
+        String::from("you"),
+    ];
+
+    for val in vals {
+        tx.send(val).unwrap();
+        thread::sleep(Duration::from_secs(1));
+    }
+});
+
+// receive from tx and tx 1
+for received in rx {
+    println!("Got: {}", received);
+}
+```
+
+## 状態共有並行性
+
 TODO
