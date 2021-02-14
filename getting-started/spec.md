@@ -4411,5 +4411,38 @@ fn main() {
 
 ### 複数のスレッド間で `Mutex<T>` を共有する
 
-TODO
+```rust
+use std::sync::{Mutex, Arc};
+use std::thread;
 
+fn main() {
+    // 複数のスレッドで counter を参照するため、マルチスレッドで使える参照カウンタの Arc (Atomic Reference Counter) を使う。
+    // (Rc だとマルチスレッドで安全に使えないためコンパイルエラーになる)
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        // それぞれのスレッドのクロージャーで counter を move するため、`Arc::clone` で参照をクローンする
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        // すべてのスレッドの終了を待ち合わせる
+        handle.join().unwrap();
+    }
+
+    // それぞれのスレッドに渡した counter は Arc::clone でクローンした参照のため、
+    // counter は有効なままなので利用可能
+    println!("Result: {}", *counter.lock().unwrap());
+}
+```
+
+## SyncとSendトレイトで拡張可能な並行性
+
+TODO
